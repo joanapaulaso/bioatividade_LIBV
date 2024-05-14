@@ -1,7 +1,9 @@
-# bioactivity-prediction-app
+# bioatividade-LIBV
 
-# Watch the tutorial video
+# Créditos da aplicação original
 
+
+Script original desenvolvido por Chanin Nantasenamat, do canal Data Professor:
 [Bioinformatics Project from Scratch - Drug Discovery #6 (Deploy Model as Web App) | Streamlit #22](https://youtu.be/htBIP17S-20)
 
 <a href="https://youtu.be/m0sePkuyTKs"><img src="http://img.youtube.com/vi/m0sePkuyTKs/0.jpg" alt="Bioinformatics Project from Scratch - Drug Discovery #6 (Deploy Model as Web App) | Streamlit #22" title="Bioinformatics Project from Scratch - Drug Discovery #6 (Deploy Model as Web App) | Streamlit #22" width="400" /></a>
