@@ -29,8 +29,9 @@ def build_model(input_data):
     prediction = load_model.predict(input_data)
     st.header('**Saída das predições**')
     prediction_output = pd.Series(prediction, name='pIC50')
-    molecule_name = pd.Series(load_data[1], name='molecule_name')
-    df = pd.concat([molecule_name, prediction_output], axis=1)
+    molecule_id = pd.Series(load_data[1], name='id_molecula')
+    molecule_name = pd.Series(load_data[2], name='nome_molecula')
+    df = pd.concat([molecule_id, molecule_name, prediction_output], axis=1)
     st.write(df)
     st.markdown(filedownload(df), unsafe_allow_html=True)
 
@@ -66,7 +67,7 @@ with st.sidebar.header('2. Faça upload dos dados em CSV:'):
 
 if st.sidebar.button('Prever'):
     load_data = pd.read_table(uploaded_file, sep=' ', header=None)
-    load_data.to_csv('molecule.smi', sep = '\t', header = False, index = False)
+    load_data.to_csv('molecule.smi', sep = ' ', header = False, index = False)
 
     st.header('**Dados originais de entrada**')
     st.write(load_data)
@@ -76,7 +77,7 @@ if st.sidebar.button('Prever'):
 
     # Read in calculated descriptors and display the dataframe
     st.header('**Cálculo de descritores moleculares realizado**')
-    desc = pd.read_csv('descriptors_output.csv')
+    desc = pd.read_csv('descriptors_output.csv', )
     st.write(desc)
     st.write(desc.shape)
 

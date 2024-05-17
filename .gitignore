@@ -1,3 +1,4 @@
 /.ipynb_checkpoints
 *.pkl
 test.py
+descriptors_output.csv
