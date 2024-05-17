@@ -24,7 +24,7 @@ def filedownload(df):
 # Model building
 def build_model(input_data):
     # Reads in saved regression model
-    load_model = pickle.load(open('acetylcholinesterase_model.pkl', 'rb'))
+    load_model = pickle.load(open(selected_model, 'rb'))
     # Apply model to make predictions
     prediction = load_model.predict(input_data)
     st.header('**Saída das predições**')
@@ -41,10 +41,10 @@ st.image(image, use_column_width=True)
 
 # Page title
 st.markdown("""
-# Aplicação de Predição de Bioatividade (Acetilcolinesterase)
+# Aplicação de Predição de Bioatividade
 
 
-Essa aplicação permite prever a bioatividade direcionada para a inibição da enzima acetilcolinesterase, que é alvo medicinal para a doença de Alzheimer.
+Essa aplicação permite prever a bioatividade direcionada para a inibição de uma enzima cujo modelo de Deep Learning foi previamente preparado.
 
 **Credits**
 - Aplicativo originalmente desenvolvido em Python + Streamlit por [Chanin Nantasenamat](https://medium.com/@chanin.nantasenamat) (aka [Data Professor](http://youtube.com/dataprofessor))
@@ -53,7 +53,12 @@ Essa aplicação permite prever a bioatividade direcionada para a inibição da 
 """)
 
 # Sidebar
-with st.sidebar.header('1. Faça upload dos dados em CSV'):
+models = os.listdir('models')
+
+with st.sidebar.header('1. Selecione o modelo a ser utilizado (alvo): '):
+    selected_model = f"models/{st.sidebar.selectbox("Modelo", models)}"
+
+with st.sidebar.header('2. Faça upload dos dados em CSV:'):
     uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['txt'])
     st.sidebar.markdown("""
 [Exemplo de arquivo de entrada](https://raw.githubusercontent.com/dataprofessor/bioactivity-prediction-app/main/example_acetylcholinesterase.txt)
@@ -85,4 +90,4 @@ if st.sidebar.button('Prever'):
     # Apply trained model to make prediction on query compounds
     build_model(desc_subset)
 else:
-    st.info('Utilize a barra lateral para realizar o upload dos dados de entrada!')
+    st.info('Utilize a barra lateral para selecionar o modelo e realizar o upload dos dados de entrada!')
