@@ -2,3 +2,5 @@
 *.pkl
 test.py
 descriptors_output.csv
+*.ipynb
+*.csv
