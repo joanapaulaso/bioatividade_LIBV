@@ -57,7 +57,7 @@ Essa aplicação permite prever a bioatividade direcionada para a inibição de 
 models = os.listdir('models')
 
 with st.sidebar.header('1. Selecione o modelo a ser utilizado (alvo): '):
-    selected_model = f"models/{st.sidebar.selectbox("Modelo", models)}"
+    selected_model = f'models/{st.sidebar.selectbox("Modelo", models)}'
 
 with st.sidebar.header('2. Faça upload dos dados em CSV:'):
     uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['txt'])
