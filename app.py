@@ -45,7 +45,7 @@ st.markdown("""
 # Aplicação de Predição de Bioatividade
 
 
-Essa aplicação permite prever a bioatividade direcionada para a inibição de uma enzima cujo modelo de Deep Learning foi previamente preparado.
+Essa aplicação permite prever a bioatividade em relação a um alvo cujo modelo de Deep Learning foi previamente preparado.
 
 **Credits**
 - Aplicativo originalmente desenvolvido em Python + Streamlit por [Chanin Nantasenamat](https://medium.com/@chanin.nantasenamat) (aka [Data Professor](http://youtube.com/dataprofessor))
