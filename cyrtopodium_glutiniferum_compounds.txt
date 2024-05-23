@@ -1,0 +1,28 @@
+COC1=CC=C(C=C1)C2COC3=C(C2=O)C=CC(=C3)O 14730796 Dihydroformononetin
+C1=CC(=C(C=C1C=CC(=O)O)O)OC2C(C(C(C(O2)CO)O)O)O 11382279 Caffeic_acid_4-O-glucoside
+C1=CC(=CC=C1O)OC2C(C(C(C(O2)CO)O)O)O 440936 Arbutin
+CC(=O)C1=CC(=C(C=C1O)OC)OS(=O)(=O)O 10587535 2-Hydroxy-4-methoxyacetophenone_5-sulfate
+C1=CC(=CC=C1CC(CC(=O)OCC2=CC=C(C=C2)OC3C(C(C(C(O3)CO)O)O)O)(C(=O)O)O)O 53355889 vandateroside_I
+C1C(C(C(C(O1)(CC2=CC=C(C=C2)O)O)O)O)O 101042496 (2R,3S,4R,5S)-2-[(4-hydroxyphenyl)methyl]oxane-2,3,4,5-tetrol
+C1C(COC2=C1C=CC(=C2)O)C3=CC=C(C=C3)OC4C(C(C(C(O4)C(=O)O)O)O)O 122400995 Equol_4'-O-glucuronide
+C1=CC(=CC=C1C(=O)O)OC2C(C(C(C(O2)CO)O)O)O 440186 4-(beta-D-glucosyloxy)benzoic_acid
+C1=CC(=CC=C1CCC(=O)C2=C(C=C(C=C2OC3C(C(C(C(O3)CO)O)O)O)O)O)O 6072 Phlorizin
+COC1=C(C=CC(=C1)CCC(=O)O)OC2C(C(C(C(O2)C(=O)O)O)O)O 190069 Dihydroferulic_acid_4-O-glucuronide
+COC1=C(C=CC(=C1)C=CC(=O)O)OC2C(C(C(C(O2)CO)O)O)O 91134292 Ferulic_acid_4-O-glucoside
+CC12CCC3C1(C(CC(C3C2=O)C(C)(C)O)OC4C(C(C(C(O4)CO)O)O)O)C 44559639 Dendromoniliside_A
+CC1C(C(C(C(O1)OCC2C(C(C(C(O2)OC3=C(C(=C4C(=C3)OC(=CC4=O)C5=CC=C(C=C5)O)O)OC)O)O)O)O)O)O 44258457 Hispidulin_7-rutinoside
+COC1=C(C=CC(=C1)C=O)OC2C(C(C(C(O2)CO)O)O)O 3648225 Glucovanillin
+CC(C)C1CCC2(C(C1COC3C(C(C(C(O3)CO)O)O)O)CCC2(CO)O)C 11761556 Dendronobiloside_B
+C1=CC(=CC=C1CO)OC2C(C(C(C(O2)CO)O)O)O 115067 Gastrodin
+
+
+
+
+
+
+
+
+
+
+
+
