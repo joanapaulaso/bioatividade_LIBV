@@ -4,3 +4,6 @@ base58==2.0.1
 subprocess
 os
 pickle
+chembl_webresource_client
+numpy
+scikit-learn

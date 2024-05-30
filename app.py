@@ -5,6 +5,14 @@ import subprocess
 import os
 import base64
 import pickle
+from chembl_webresource_client.new_client import new_client
+import numpy as np
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+
+
+#TODO: Tratamento de Exceçõess
 
 # Molecular descriptor calculator
 def desc_calc():
@@ -35,7 +43,67 @@ def build_model(input_data):
     st.write(df)
     st.markdown(filedownload(df), unsafe_allow_html=True)
 
-# Logo image
+def pIC50(input):
+    pIC50 = []
+
+    for i in input['standard_value_norm']:
+        molar = i*(10**-9) # Converts nM to M
+        pIC50.append(-np.log10(molar))
+
+    input['pIC50'] = pIC50
+    x = input.drop(columns = 'standard_value_norm')
+
+    return x
+
+
+def norm_value(input):
+    norm = []
+
+    for j in input['standard_value']:
+        i = float(j)
+        if i > 100000000:
+          i = 100000000
+        norm.append(i)
+
+    input['standard_value_norm'] = norm
+    x = input.drop(columns = 'standard_value')
+
+    return x
+
+
+def search_target(search):
+    target = new_client.target
+    target_query = target.search(search)
+    targets = pd.DataFrame.from_dict(target_query)
+    return targets
+
+def select_target(selected_index):
+    selected_index = int(selected_index)
+    selected_target = targets.loc[selected_index]['target_chembl_id']
+    activity = new_client.activity
+    res = activity.filter(target_chembl_id=selected_target).filter(standard_type="IC50")
+    df = pd.DataFrame.from_dict(res)
+    df2 = df[df.standard_value.notna()]
+    df2 = df2[df.canonical_smiles.notna()]
+    df2_nr = df2.drop_duplicates(['canonical_smiles'])
+    selection = ['molecule_chembl_id','canonical_smiles','standard_value']
+    df3 = df2_nr[selection]
+    df_norm = norm_value(df3)
+    df_final = pIC50(df_norm)
+
+    return df_final
+
+def remove_low_variance(input_data, threshold=0.1):
+    selection = VarianceThreshold(threshold)
+    selection.fit(input_data)
+    return input_data[input_data.columns[selection.get_support(indices=True)]]
+
+def model_generation():
+    model = RandomForestRegressor(n_estimators=500, random_state=42)
+    model.fit(X, Y)
+    pickle.dump(model, open(f'models/{search}.pkl', 'wb'))
+
+
 image = Image.open('logo.png')
 
 st.image(image, use_column_width=True)
@@ -52,6 +120,59 @@ Essa aplicação permite prever a bioatividade em relação a um alvo cujo model
 - Descritores calculados utilizando [PaDEL-Descriptor](http://www.yapcwsoft.com/dd/padeldescriptor/) [[Leia o Paper]](https://doi.org/10.1002/jcc.21707).
 ---
 """)
+
+st.header("Criação do modelo (CHEMBL)")
+
+
+col1, col2 = st.columns([3,1])
+if 'targets' not in st.session_state:
+    st.session_state['targets'] = pd.DataFrame()
+with col1:
+    search = st.text_input("Alvo")
+with col2:
+    if st.button('Buscar'):
+        with st.spinner("Buscando..."):
+            st.session_state['targets'] = search_target(search)
+
+
+targets = st.session_state['targets']
+
+
+#TODO: Alinhar input e botão 
+
+container1 = st.container()
+with container1:
+    if not targets.empty:
+        st.write(targets)
+    else:
+        st.write("Nenhum alvo encontrado")
+
+    
+
+selected_index = st.text_input("Índice do alvo selecionado")
+df_final = select_target(selected_index)
+df_final
+
+if st.button("Gerar modelo"):
+    selection = ['canonical_smiles','molecule_chembl_id']
+    df_final_selection = df_final[selection]
+    df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
+    with st.spinner("Calculando descritores..."):
+        desc_calc()
+    df_fingerprints = pd.read_csv('descriptors_output.csv')
+    st.header("Descritores")
+    df_fingerprints
+    df_fingerprints = df_fingerprints.drop(columns = ['Name'])
+    df_Y = df_final['pIC50']
+    df_training = pd.concat([df_fingerprints, df_Y], axis=1)
+    X = df_training.drop(['pIC50'], axis=1)
+    Y = df_training.iloc[:, -1]
+    X = remove_low_variance(X, threshold=0.1)
+    X.to_csv('descriptor_list.csv', index = False)
+    with st.spinner("Gerando modelo..."):
+        model_generation()
+
+
 
 # Sidebar
 models = os.listdir('models')
