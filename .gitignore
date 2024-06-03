@@ -2,4 +2,6 @@
 *.pkl
 test.py
 descriptors_output.csv
+*descriptor_list.csv
+bioactivity_prediction
 *.csv

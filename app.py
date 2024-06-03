@@ -34,7 +34,7 @@ def filedownload(df):
 # Model building
 def build_model(input_data):
     
-    try:
+   # try:
         # Reads in saved regression model
         load_model = pickle.load(open(selected_model, 'rb'))
         # Apply model to make predictions
@@ -46,8 +46,8 @@ def build_model(input_data):
         df = pd.concat([molecule_id, molecule_name, prediction_output], axis=1)
         st.write(df)
         st.markdown(filedownload(df), unsafe_allow_html=True)
-    except Exception as e:
-        st.error(f'Erro ao construir o modelo: {e}')
+    #except Exception as e:
+        #st.error(f'Erro ao construir o modelo: {e}')
 
 
 def pIC50(input):
@@ -114,10 +114,14 @@ def remove_low_variance(input_data, threshold=0.1):
     selection.fit(input_data)
     return input_data[input_data.columns[selection.get_support(indices=True)]]
 
-def model_generation():
-    model = RandomForestRegressor(n_estimators=500, random_state=42)
-    model.fit(X, Y)
-    pickle.dump(model, open(f'models/{search}.pkl', 'wb'))
+def model_generation(X, Y):
+    try:
+        model = RandomForestRegressor(n_estimators=500, random_state=42)
+        model.fit(X, Y)
+        pickle.dump(model, open(f'models/{search}.pkl', 'wb'))
+
+    except Exception as e:
+        st.error(f'Erro na geração do modelo: {e}')
 
 
 image = Image.open('logo.png')
@@ -184,12 +188,17 @@ if not target_molecules.empty:
         df_fingerprints = df_fingerprints.drop(columns = ['Name'])
         df_Y = target_molecules['pIC50']
         df_training = pd.concat([df_fingerprints, df_Y], axis=1)
+        df_training = df_training.dropna()
         X = df_training.drop(['pIC50'], axis=1)
         Y = df_training.iloc[:, -1]
         X = remove_low_variance(X, threshold=0.1)
-        X.to_csv('descriptor_list.csv', index = False)
-        with st.spinner("Gerando modelo..."):
-            model_generation()
+        X.to_csv(f'{search}_descriptor_list.csv', index = False)
+        try:
+            with st.spinner("Gerando modelo..."):
+                model_generation(X, Y)
+                st.success(f'Modelo {search} criado! Agora está disponível para predições.')
+        except:
+            st.error('Falha na criação do modelo: {e}')
 
 
 
@@ -202,7 +211,8 @@ if not target_molecules.empty:
 models = os.listdir('models')
 
 with st.sidebar.header('1. Selecione o modelo a ser utilizado (alvo): '):
-    selected_model = f'models/{st.sidebar.selectbox("Modelo", models)}'
+    selected_model_name = st.sidebar.selectbox("Modelo", models).removesuffix(".pkl")
+    selected_model = f'models/{selected_model_name}.pkl'
 
 with st.sidebar.header('2. Faça upload dos dados em CSV:'):
     uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['txt'])
@@ -228,7 +238,7 @@ if st.sidebar.button('Prever'):
 
     # Read descriptor list used in previously built model
     st.header('**Subconjunto de descritores de modelos preparados previamente**')
-    Xlist = list(pd.read_csv('descriptor_list.csv').columns)
+    Xlist = list(pd.read_csv(f'{selected_model_name}_descriptor_list.csv').columns)
     desc_subset = desc[Xlist]
     st.write(desc_subset)
     st.write(desc_subset.shape)
