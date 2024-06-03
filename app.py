@@ -12,16 +12,18 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
 
-#TODO: Tratamento de Exceçõess
+#TODO: Tratamento de Exceções
 
 # Molecular descriptor calculator
 def desc_calc():
     # Performs the descriptor calculation
-    bashCommand = "java -Xms2G -Xmx2G -Djava.awt.headless=true -jar ./PaDEL-Descriptor/PaDEL-Descriptor.jar -removesalt -standardizenitro -fingerprints -descriptortypes ./PaDEL-Descriptor/PubchemFingerprinter.xml -dir ./ -file descriptors_output.csv"
-    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
-    os.remove('molecule.smi')
-
+    try:
+        bashCommand = "java -Xms2G -Xmx2G -Djava.awt.headless=true -jar ./PaDEL-Descriptor/PaDEL-Descriptor.jar -removesalt -standardizenitro -fingerprints -descriptortypes ./PaDEL-Descriptor/PubchemFingerprinter.xml -dir ./ -file descriptors_output.csv"
+        process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+        output, error = process.communicate()
+        os.remove('molecule.smi')
+    except Exception as e:
+        st.error(f'Erro ao calcular descritores: {e}')
 # File download
 def filedownload(df):
     csv = df.to_csv(index=False)
@@ -31,17 +33,22 @@ def filedownload(df):
 
 # Model building
 def build_model(input_data):
-    # Reads in saved regression model
-    load_model = pickle.load(open(selected_model, 'rb'))
-    # Apply model to make predictions
-    prediction = load_model.predict(input_data)
-    st.header('**Saída das predições**')
-    prediction_output = pd.Series(prediction, name='pIC50')
-    molecule_id = pd.Series(load_data[1], name='id_molecula')
-    molecule_name = pd.Series(load_data[2], name='nome_molecula')
-    df = pd.concat([molecule_id, molecule_name, prediction_output], axis=1)
-    st.write(df)
-    st.markdown(filedownload(df), unsafe_allow_html=True)
+    
+    try:
+        # Reads in saved regression model
+        load_model = pickle.load(open(selected_model, 'rb'))
+        # Apply model to make predictions
+        prediction = load_model.predict(input_data)
+        st.header('**Saída das predições**')
+        prediction_output = pd.Series(prediction, name='pIC50')
+        molecule_id = pd.Series(load_data[1], name='id_molecula')
+        molecule_name = pd.Series(load_data[2], name='nome_molecula')
+        df = pd.concat([molecule_id, molecule_name, prediction_output], axis=1)
+        st.write(df)
+        st.markdown(filedownload(df), unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f'Erro ao construir o modelo: {e}')
+
 
 def pIC50(input):
     pIC50 = []
@@ -72,26 +79,35 @@ def norm_value(input):
 
 
 def search_target(search):
-    target = new_client.target
-    target_query = target.search(search)
-    targets = pd.DataFrame.from_dict(target_query)
-    return targets
+    try:
+        target = new_client.target
+        target_query = target.search(search)
+        targets = pd.DataFrame.from_dict(target_query)
+        return targets
+    except Exception as e:
+        st.error(f'Erro na busca do alvo: {e}')
+        return pd.DataFrame()
+
 
 def select_target(selected_index):
-    selected_index = int(selected_index)
-    selected_target = targets.loc[selected_index]['target_chembl_id']
-    activity = new_client.activity
-    res = activity.filter(target_chembl_id=selected_target).filter(standard_type="IC50")
-    df = pd.DataFrame.from_dict(res)
-    df2 = df[df.standard_value.notna()]
-    df2 = df2[df.canonical_smiles.notna()]
-    df2_nr = df2.drop_duplicates(['canonical_smiles'])
-    selection = ['molecule_chembl_id','canonical_smiles','standard_value']
-    df3 = df2_nr[selection]
-    df_norm = norm_value(df3)
-    df_final = pIC50(df_norm)
+    try:
+        selected_index = int(selected_index)
+        selected_target = targets.loc[selected_index]['target_chembl_id']
+        activity = new_client.activity
+        res = activity.filter(target_chembl_id=selected_target).filter(standard_type="IC50")
+        df = pd.DataFrame.from_dict(res)
+        df2 = df[df.standard_value.notna()]
+        df2 = df2[df.canonical_smiles.notna()]
+        df2_nr = df2.drop_duplicates(['canonical_smiles'])
+        selection = ['molecule_chembl_id','canonical_smiles','standard_value']
+        df3 = df2_nr[selection]
+        df_norm = norm_value(df3)
+        df_final = pIC50(df_norm)
 
-    return df_final
+        return df_final
+    except Exception as e:
+        st.error(f'Erro na seleção do alvo: {e}')
+        return pd.DataFrame()
 
 def remove_low_variance(input_data, threshold=0.1):
     selection = VarianceThreshold(threshold)
@@ -136,6 +152,7 @@ with col2:
 
 
 targets = st.session_state['targets']
+target_molecules = pd.DataFrame()
 
 
 #TODO: Alinhar input e botão 
@@ -144,33 +161,40 @@ container1 = st.container()
 with container1:
     if not targets.empty:
         st.write(targets)
-    else:
-        st.write("Nenhum alvo encontrado")
 
     
+if not targets.empty:
+    selected_index = st.text_input("Índice do alvo selecionado")
 
-selected_index = st.text_input("Índice do alvo selecionado")
-df_final = select_target(selected_index)
-df_final
+    if selected_index:
+        target_molecules = select_target(selected_index)
+        target_molecules
 
-if st.button("Gerar modelo"):
-    selection = ['canonical_smiles','molecule_chembl_id']
-    df_final_selection = df_final[selection]
-    df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
-    with st.spinner("Calculando descritores..."):
-        desc_calc()
-    df_fingerprints = pd.read_csv('descriptors_output.csv')
-    st.header("Descritores")
-    df_fingerprints
-    df_fingerprints = df_fingerprints.drop(columns = ['Name'])
-    df_Y = df_final['pIC50']
-    df_training = pd.concat([df_fingerprints, df_Y], axis=1)
-    X = df_training.drop(['pIC50'], axis=1)
-    Y = df_training.iloc[:, -1]
-    X = remove_low_variance(X, threshold=0.1)
-    X.to_csv('descriptor_list.csv', index = False)
-    with st.spinner("Gerando modelo..."):
-        model_generation()
+
+if not target_molecules.empty:
+    if st.button("Gerar modelo"):
+        selection = ['canonical_smiles','molecule_chembl_id']
+        df_final_selection = target_molecules[selection]
+        df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
+        with st.spinner("Calculando descritores..."):
+            desc_calc()
+        df_fingerprints = pd.read_csv('descriptors_output.csv')
+        st.header("Descritores")
+        df_fingerprints
+        df_fingerprints = df_fingerprints.drop(columns = ['Name'])
+        df_Y = target_molecules['pIC50']
+        df_training = pd.concat([df_fingerprints, df_Y], axis=1)
+        X = df_training.drop(['pIC50'], axis=1)
+        Y = df_training.iloc[:, -1]
+        X = remove_low_variance(X, threshold=0.1)
+        X.to_csv('descriptor_list.csv', index = False)
+        with st.spinner("Gerando modelo..."):
+            model_generation()
+
+
+
+
+
 
 
 
