@@ -39,7 +39,7 @@ def build_model(input_data):
         load_model = pickle.load(open(selected_model, 'rb'))
         # Apply model to make predictions
         prediction = load_model.predict(input_data)
-        st.header('**Saída das predições**')
+        st.header(f'**Saída das predições - Bioatividade em relação ao modelo {selected_model_name}**')
         prediction_output = pd.Series(prediction, name='pIC50')
         molecule_id = pd.Series(load_data[1], name='id_molecula')
         molecule_name = pd.Series(load_data[2], name='nome_molecula')
@@ -110,9 +110,13 @@ def select_target(selected_index):
         return pd.DataFrame()
 
 def remove_low_variance(input_data, threshold=0.1):
-    selection = VarianceThreshold(threshold)
-    selection.fit(input_data)
-    return input_data[input_data.columns[selection.get_support(indices=True)]]
+    try:
+        selection = VarianceThreshold(threshold)
+        selection.fit(input_data)
+        return input_data[input_data.columns[selection.get_support(indices=True)]]
+    except Exception as e:
+        st.error('Erro na remoção de baixa variância: {e}')
+        return pd.DataFrame()
 
 def model_generation(X, Y):
     try:
@@ -141,7 +145,7 @@ Essa aplicação permite prever a bioatividade em relação a um alvo cujo model
 ---
 """)
 
-st.header("Criação do modelo (CHEMBL)")
+st.header("Criação de modelo (CHEMBL)")
 
 
 col1, col2 = st.columns([3,1])
@@ -176,6 +180,7 @@ if not targets.empty:
 
 
 if not target_molecules.empty:
+    model_name = st.text_input("Nome para salvamento do modelo: ")
     if st.button("Gerar modelo"):
         selection = ['canonical_smiles','molecule_chembl_id']
         df_final_selection = target_molecules[selection]
@@ -192,11 +197,11 @@ if not target_molecules.empty:
         X = df_training.drop(['pIC50'], axis=1)
         Y = df_training.iloc[:, -1]
         X = remove_low_variance(X, threshold=0.1)
-        X.to_csv(f'{search}_descriptor_list.csv', index = False)
+        X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
         try:
             with st.spinner("Gerando modelo..."):
                 model_generation(X, Y)
-                st.success(f'Modelo {search} criado! Agora está disponível para predições.')
+                st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
         except:
             st.error('Falha na criação do modelo: {e}')
 
@@ -238,7 +243,7 @@ if st.sidebar.button('Prever'):
 
     # Read descriptor list used in previously built model
     st.header('**Subconjunto de descritores de modelos preparados previamente**')
-    Xlist = list(pd.read_csv(f'{selected_model_name}_descriptor_list.csv').columns)
+    Xlist = list(pd.read_csv(f'descriptor_lists/{selected_model_name}_descriptor_list.csv').columns)
     desc_subset = desc[Xlist]
     st.write(desc_subset)
     st.write(desc_subset.shape)
