@@ -122,7 +122,9 @@ def model_generation(X, Y):
     try:
         model = RandomForestRegressor(n_estimators=500, random_state=42)
         model.fit(X, Y)
-        pickle.dump(model, open(f'models/{search}.pkl', 'wb'))
+        if not os.path.isdir("models"):
+            os.mkdir("models")
+        pickle.dump(model, open(f'models/{model_name}.pkl', 'wb'))
 
     except Exception as e:
         st.error(f'Erro na geração do modelo: {e}')
@@ -137,7 +139,7 @@ st.markdown("""
 # Aplicação de Predição de Bioatividade
 
 
-Essa aplicação permite prever a bioatividade em relação a um alvo cujo modelo de Deep Learning foi previamente preparado.
+Essa aplicação permite predizer a bioatividade em relação a um alvo cujo modelo de Deep Learning foi previamente preparado.
 
 **Credits**
 - Aplicativo originalmente desenvolvido em Python + Streamlit por [Chanin Nantasenamat](https://medium.com/@chanin.nantasenamat) (aka [Data Professor](http://youtube.com/dataprofessor))
@@ -197,6 +199,8 @@ if not target_molecules.empty:
         X = df_training.drop(['pIC50'], axis=1)
         Y = df_training.iloc[:, -1]
         X = remove_low_variance(X, threshold=0.1)
+        if not os.path.isdir("descriptor_lists"):
+            os.mkdir("descriptor_lists")
         X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
         try:
             with st.spinner("Gerando modelo..."):
@@ -225,7 +229,8 @@ with st.sidebar.header('2. Faça upload dos dados em CSV:'):
 [Exemplo de arquivo de entrada](https://raw.githubusercontent.com/dataprofessor/bioactivity-prediction-app/main/example_acetylcholinesterase.txt)
 """)
 
-if st.sidebar.button('Prever'):
+if st.sidebar.button('Predizer'):
+    st.header('Cálculo de predição:')
     load_data = pd.read_table(uploaded_file, sep=' ', header=None)
     load_data.to_csv('molecule.smi', sep = ' ', header = False, index = False)
 
