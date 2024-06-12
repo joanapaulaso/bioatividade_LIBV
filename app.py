@@ -217,6 +217,9 @@ if not target_molecules.empty:
 
 
 # Sidebar
+if not os.path.isdir("models"):
+        os.mkdir("models")
+
 models = os.listdir('models')
 
 with st.sidebar.header('1. Selecione o modelo a ser utilizado (alvo): '):
