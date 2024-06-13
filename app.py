@@ -9,7 +9,9 @@ from chembl_webresource_client.new_client import new_client
 import numpy as np
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
+from rdkit import Chem
+from rdkit.Chem import Descriptors, Lipinski
 
 
 #TODO: Tratamento de Exceções
@@ -77,6 +79,44 @@ def norm_value(input):
 
     return x
 
+def lipinski(smiles, verbose=False):
+
+    try:
+        moldata= []
+        for elem in smiles:
+            mol=Chem.MolFromSmiles(elem) 
+            moldata.append(mol)
+        
+        baseData= np.arange(1,1)
+        i=0  
+        for mol in moldata:        
+        
+            desc_MolWt = Descriptors.MolWt(mol)
+            desc_MolLogP = Descriptors.MolLogP(mol)
+            desc_NumHDonors = Lipinski.NumHDonors(mol)
+            desc_NumHAcceptors = Lipinski.NumHAcceptors(mol)
+            
+            row = np.array([desc_MolWt,
+                            desc_MolLogP,
+                            desc_NumHDonors,
+                            desc_NumHAcceptors])   
+        
+            if(i==0):
+                baseData=row
+            else:
+                baseData=np.vstack([baseData, row])
+            i=i+1      
+        
+        columnNames=["MW","LogP","NumHDonors","NumHAcceptors"]   
+        descriptors = pd.DataFrame(data=baseData,columns=columnNames)
+        
+        return descriptors
+    
+    except Exception as e:
+        st.error(f'Erro no cálculo dos descritores de Lipinski: {e}')
+        return pd.DataFrame()
+
+
 
 def search_target(search):
     try:
@@ -87,6 +127,20 @@ def search_target(search):
     except Exception as e:
         st.error(f'Erro na busca do alvo: {e}')
         return pd.DataFrame()
+    
+def clean_smiles(df):
+    df_no_smiles = df.drop(columns = 'canonical_smiles')
+    smiles = []
+
+    for i in df.canonical_smiles.tolist():
+
+        cpd = str(i).split('.')
+        cpd_longest = max(cpd, key=len)
+        smiles.append(cpd_longest)
+
+    smiles = pd.Series(smiles, name = 'canonical_smiles')
+    df_clean_smiles = pd.concat([df_no_smiles, smiles], axis=1)
+    return df_clean_smiles
 
 
 def select_target(selected_index):
@@ -96,20 +150,56 @@ def select_target(selected_index):
         activity = new_client.activity
         res = activity.filter(target_chembl_id=selected_target).filter(standard_type="IC50")
         df = pd.DataFrame.from_dict(res)
-        df2 = df[df.standard_value.notna()]
-        df2 = df2[df.canonical_smiles.notna()]
-        df2_nr = df2.drop_duplicates(['canonical_smiles'])
+
+                
+
+        df_clean = df[df.standard_value.notna()]
+        df_clean = df_clean[df.canonical_smiles.notna()]
+        df_clean = df_clean.drop_duplicates(['canonical_smiles'])
+
+        
+        
         selection = ['molecule_chembl_id','canonical_smiles','standard_value']
-        df3 = df2_nr[selection]
-        df_norm = norm_value(df3)
+        df_selected = df_clean[selection]
+
+        df_selected.dropna()
+        df_selected
+
+        
+        
+        bioactivity_threshold = []
+        
+        for i in df_selected.standard_value:
+            if float(i) >= 10000:
+                bioactivity_threshold.append("inactive")
+            elif float(i) <= 1000:
+                bioactivity_threshold.append("active")
+            else:
+                bioactivity_threshold.append("intermediate")
+        bioactivity_class = pd.Series(bioactivity_threshold, name='class')
+        df_labeled = pd.concat([df_selected, bioactivity_class], axis=1)
+
+        df_labeled
+
+
+        df_lipinski = lipinski(df_labeled.canonical_smiles)
+        df_combined = pd.concat([df_labeled, df_lipinski], axis=1)
+
+
+        
+        df_norm = norm_value(df_combined)
         df_final = pIC50(df_norm)
 
+
+
         return df_final
+    
     except Exception as e:
         st.error(f'Erro na seleção do alvo: {e}')
         return pd.DataFrame()
 
 def remove_low_variance(input_data, threshold=0.1):
+    
     try:
         selection = VarianceThreshold(threshold)
         selection.fit(input_data)
@@ -177,7 +267,8 @@ if not targets.empty:
     selected_index = st.text_input("Índice do alvo selecionado")
 
     if selected_index:
-        target_molecules = select_target(selected_index)
+        with st.spinner("Selecionando base de dados de moléculas: "):
+            target_molecules = select_target(selected_index)
         target_molecules
 
 
@@ -222,41 +313,45 @@ if not os.path.isdir("models"):
 
 models = os.listdir('models')
 
-with st.sidebar.header('1. Selecione o modelo a ser utilizado (alvo): '):
-    selected_model_name = st.sidebar.selectbox("Modelo", models).removesuffix(".pkl")
-    selected_model = f'models/{selected_model_name}.pkl'
+if len(os.listdir('models')) != 0:
+    with st.sidebar.header('1. Selecione o modelo a ser utilizado (alvo): '):
+        selected_model_name = st.sidebar.selectbox("Modelo", models).removesuffix(".pkl")
+        selected_model = f'models/{selected_model_name}.pkl'
 
-with st.sidebar.header('2. Faça upload dos dados em CSV:'):
-    uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['txt'])
-    st.sidebar.markdown("""
-[Exemplo de arquivo de entrada](https://raw.githubusercontent.com/dataprofessor/bioactivity-prediction-app/main/example_acetylcholinesterase.txt)
-""")
+    with st.sidebar.header('2. Faça upload dos dados em CSV:'):
+        uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['txt'])
+        st.sidebar.markdown("""
+    [Exemplo de arquivo de entrada](https://raw.githubusercontent.com/dataprofessor/bioactivity-prediction-app/main/example_acetylcholinesterase.txt)
+    """)
 
-if st.sidebar.button('Predizer'):
-    st.header('Cálculo de predição:')
-    load_data = pd.read_table(uploaded_file, sep=' ', header=None)
-    load_data.to_csv('molecule.smi', sep = ' ', header = False, index = False)
+    if st.sidebar.button('Predizer'):
+        st.header('Cálculo de predição:')
+        load_data = pd.read_table(uploaded_file, sep=' ', header=None)
+        load_data.to_csv('molecule.smi', sep = ' ', header = False, index = False)
 
-    st.header('**Dados originais de entrada**')
-    st.write(load_data)
+        st.header('**Dados originais de entrada**')
+        st.write(load_data)
 
-    with st.spinner("Calculando descritores..."):
-        desc_calc()
+        with st.spinner("Calculando descritores..."):
+            desc_calc()
 
-    # Read in calculated descriptors and display the dataframe
-    st.header('**Cálculo de descritores moleculares realizado**')
-    desc = pd.read_csv('descriptors_output.csv', )
-    st.write(desc)
-    st.write(desc.shape)
+        # Read in calculated descriptors and display the dataframe
+        st.header('**Cálculo de descritores moleculares realizado**')
+        desc = pd.read_csv('descriptors_output.csv', )
+        st.write(desc)
+        st.write(desc.shape)
 
-    # Read descriptor list used in previously built model
-    st.header('**Subconjunto de descritores de modelos preparados previamente**')
-    Xlist = list(pd.read_csv(f'descriptor_lists/{selected_model_name}_descriptor_list.csv').columns)
-    desc_subset = desc[Xlist]
-    st.write(desc_subset)
-    st.write(desc_subset.shape)
+        # Read descriptor list used in previously built model
+        st.header('**Subconjunto de descritores de modelos preparados previamente**')
+        Xlist = list(pd.read_csv(f'descriptor_lists/{selected_model_name}_descriptor_list.csv').columns)
+        desc_subset = desc[Xlist]
+        st.write(desc_subset)
+        st.write(desc_subset.shape)
 
-    # Apply trained model to make prediction on query compounds
-    build_model(desc_subset)
+        # Apply trained model to make prediction on query compounds
+        build_model(desc_subset)
+    else:
+        st.info('Utilize a barra lateral para selecionar o modelo e realizar o upload dos dados de entrada!')
 else:
-    st.info('Utilize a barra lateral para selecionar o modelo e realizar o upload dos dados de entrada!')
+    with st.sidebar.header('Não há modelos disponíveis para predição'):
+        pass
