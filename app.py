@@ -12,6 +12,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 #TODO: Tratamento de Exceções
@@ -108,7 +110,7 @@ def lipinski(smiles, verbose=False):
             i=i+1      
         
         columnNames=["MW","LogP","NumHDonors","NumHAcceptors"]   
-        descriptors = pd.DataFrame(data=baseData,columns=columnNames)
+        descriptors = pd.DataFrame(data=baseData,columns=columnNames, index=df_labeled.index)
         
         return descriptors
     
@@ -138,9 +140,28 @@ def clean_smiles(df):
         cpd_longest = max(cpd, key=len)
         smiles.append(cpd_longest)
 
-    smiles = pd.Series(smiles, name = 'canonical_smiles')
+    smiles = pd.Series(smiles, name = 'canonical_smiles', index=df_no_smiles)
     df_clean_smiles = pd.concat([df_no_smiles, smiles], axis=1)
     return df_clean_smiles
+
+
+def label_bioactivity(df_selected):
+    
+    bioactivity_threshold = []
+        
+    for i in df_selected.standard_value:
+        if float(i) >= 10000:
+            bioactivity_threshold.append("inativo")
+        elif float(i) <= 1000:
+            bioactivity_threshold.append("ativo")
+        else:
+            bioactivity_threshold.append("intermediário")
+    bioactivity_class = pd.Series(bioactivity_threshold, name='class', index = df_selected.index)
+    
+    
+    
+    df_labeled = pd.concat([df_selected, bioactivity_class], axis=1)
+    return df_labeled
 
 
 def select_target(selected_index):
@@ -151,48 +172,17 @@ def select_target(selected_index):
         res = activity.filter(target_chembl_id=selected_target).filter(standard_type="IC50")
         df = pd.DataFrame.from_dict(res)
 
-                
+        st.header("Dados das moléculas")
+        df
 
         df_clean = df[df.standard_value.notna()]
         df_clean = df_clean[df.canonical_smiles.notna()]
         df_clean = df_clean.drop_duplicates(['canonical_smiles'])
 
-        
-        
         selection = ['molecule_chembl_id','canonical_smiles','standard_value']
         df_selected = df_clean[selection]
 
-        df_selected.dropna()
-        df_selected
-
-        
-        
-        bioactivity_threshold = []
-        
-        for i in df_selected.standard_value:
-            if float(i) >= 10000:
-                bioactivity_threshold.append("inactive")
-            elif float(i) <= 1000:
-                bioactivity_threshold.append("active")
-            else:
-                bioactivity_threshold.append("intermediate")
-        bioactivity_class = pd.Series(bioactivity_threshold, name='class')
-        df_labeled = pd.concat([df_selected, bioactivity_class], axis=1)
-
-        df_labeled
-
-
-        df_lipinski = lipinski(df_labeled.canonical_smiles)
-        df_combined = pd.concat([df_labeled, df_lipinski], axis=1)
-
-
-        
-        df_norm = norm_value(df_combined)
-        df_final = pIC50(df_norm)
-
-
-
-        return df_final
+        return df_selected
     
     except Exception as e:
         st.error(f'Erro na seleção do alvo: {e}')
@@ -268,37 +258,56 @@ if not targets.empty:
 
     if selected_index:
         with st.spinner("Selecionando base de dados de moléculas: "):
-            target_molecules = select_target(selected_index)
-        target_molecules
+            selected_molecules = select_target(selected_index)
+        with st.spinner("Processando base de dados: "):
+            df_labeled = label_bioactivity(selected_molecules)
+            #df_clean_smiles = clean_smiles(df_labeled)
+            df_lipinski = lipinski(df_labeled.canonical_smiles)
+            df_combined = pd.concat([df_labeled, df_lipinski], axis=1)
+            df_norm = norm_value(df_combined)
+            molecules_processed = pIC50(df_norm)
+        st.header("Moléculas Processadas")
+        molecules_processed
+
+        # sns.set(style='ticks')
+        
+        # plt.figure(figsize=(5.5, 5.5))
+        # sns.countplot(x='class', data=molecules_processed, edgecolor='black')
+        # plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+        # plt.ylabel('Frequency', fontsize=14, fontweight='bold')
+        # plt
 
 
-if not target_molecules.empty:
-    model_name = st.text_input("Nome para salvamento do modelo: ")
-    if st.button("Gerar modelo"):
-        selection = ['canonical_smiles','molecule_chembl_id']
-        df_final_selection = target_molecules[selection]
-        df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
-        with st.spinner("Calculando descritores..."):
-            desc_calc()
-        df_fingerprints = pd.read_csv('descriptors_output.csv')
-        st.header("Descritores")
-        df_fingerprints
-        df_fingerprints = df_fingerprints.drop(columns = ['Name'])
-        df_Y = target_molecules['pIC50']
-        df_training = pd.concat([df_fingerprints, df_Y], axis=1)
-        df_training = df_training.dropna()
-        X = df_training.drop(['pIC50'], axis=1)
-        Y = df_training.iloc[:, -1]
-        X = remove_low_variance(X, threshold=0.1)
-        if not os.path.isdir("descriptor_lists"):
-            os.mkdir("descriptor_lists")
-        X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
-        try:
-            with st.spinner("Gerando modelo..."):
-                model_generation(X, Y)
-                st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
-        except:
-            st.error('Falha na criação do modelo: {e}')
+
+
+    if not molecules_processed.empty:
+        
+        model_name = st.text_input("Nome para salvamento do modelo: ")
+        if st.button("Gerar modelo"):
+            selection = ['canonical_smiles','molecule_chembl_id']
+            df_final_selection = molecules_processed[selection]
+            df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
+            with st.spinner("Calculando descritores..."):
+                desc_calc()
+            df_fingerprints = pd.read_csv('descriptors_output.csv')
+            st.header("Descritores")
+            df_fingerprints
+            df_fingerprints = df_fingerprints.drop(columns = ['Name'])
+            df_Y = target_molecules['pIC50']
+            df_training = pd.concat([df_fingerprints, df_Y], axis=1)
+            df_training = df_training.dropna()
+            X = df_training.drop(['pIC50'], axis=1)
+            Y = df_training.iloc[:, -1]
+            X = remove_low_variance(X, threshold=0.1)
+            if not os.path.isdir("descriptor_lists"):
+                os.mkdir("descriptor_lists")
+            X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
+            try:
+                with st.spinner("Gerando modelo..."):
+                    model_generation(X, Y)
+                    st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
+            except:
+                st.error('Falha na criação do modelo: {e}')
 
 
 

@@ -7,3 +7,4 @@ pickle
 chembl_webresource_client
 numpy
 scikit-learn
+seaborn
