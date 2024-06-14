@@ -242,7 +242,7 @@ with col2:
 
 
 targets = st.session_state['targets']
-target_molecules = pd.DataFrame()
+molecules_processed = pd.DataFrame()
 
 
 #TODO: Alinhar input e botão 
@@ -266,8 +266,8 @@ if not targets.empty:
             df_combined = pd.concat([df_labeled, df_lipinski], axis=1)
             df_norm = norm_value(df_combined)
             molecules_processed = pIC50(df_norm)
-        st.header("Moléculas Processadas")
-        molecules_processed
+            st.header("Moléculas Processadas")
+            molecules_processed
 
         # sns.set(style='ticks')
         
@@ -280,34 +280,34 @@ if not targets.empty:
 
 
 
-    if not molecules_processed.empty:
-        
-        model_name = st.text_input("Nome para salvamento do modelo: ")
-        if st.button("Gerar modelo"):
-            selection = ['canonical_smiles','molecule_chembl_id']
-            df_final_selection = molecules_processed[selection]
-            df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
-            with st.spinner("Calculando descritores..."):
-                desc_calc()
-            df_fingerprints = pd.read_csv('descriptors_output.csv')
-            st.header("Descritores")
-            df_fingerprints
-            df_fingerprints = df_fingerprints.drop(columns = ['Name'])
-            df_Y = target_molecules['pIC50']
-            df_training = pd.concat([df_fingerprints, df_Y], axis=1)
-            df_training = df_training.dropna()
-            X = df_training.drop(['pIC50'], axis=1)
-            Y = df_training.iloc[:, -1]
-            X = remove_low_variance(X, threshold=0.1)
-            if not os.path.isdir("descriptor_lists"):
-                os.mkdir("descriptor_lists")
-            X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
-            try:
-                with st.spinner("Gerando modelo..."):
-                    model_generation(X, Y)
-                    st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
-            except:
-                st.error('Falha na criação do modelo: {e}')
+        if not molecules_processed.empty:
+            
+            model_name = st.text_input("Nome para salvamento do modelo: ")
+            if st.button("Gerar modelo"):
+                selection = ['canonical_smiles','molecule_chembl_id']
+                df_final_selection = molecules_processed[selection]
+                df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
+                with st.spinner("Calculando descritores..."):
+                    desc_calc()
+                df_fingerprints = pd.read_csv('descriptors_output.csv')
+                st.header("Descritores")
+                df_fingerprints
+                df_fingerprints = df_fingerprints.drop(columns = ['Name'])
+                df_Y = molecules_processed['pIC50']
+                df_training = pd.concat([df_fingerprints, df_Y], axis=1)
+                df_training = df_training.dropna()
+                X = df_training.drop(['pIC50'], axis=1)
+                Y = df_training.iloc[:, -1]
+                X = remove_low_variance(X, threshold=0.1)
+                if not os.path.isdir("descriptor_lists"):
+                    os.mkdir("descriptor_lists")
+                X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
+                try:
+                    with st.spinner("Gerando modelo..."):
+                        model_generation(X, Y)
+                        st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
+                except:
+                    st.error('Falha na criação do modelo: {e}')
 
 
 
