@@ -210,6 +210,92 @@ def model_generation(X, Y):
         st.error(f'Erro na geração do modelo: {e}')
 
 
+def graph_plot():
+        try:
+            graph1, graph2 = st.columns([0.5, 0.5])
+            
+            sns.set(style='ticks')
+            
+            plt.figure(figsize=(5.5, 5.5))
+            sns.countplot(x='class', data=molecules_processed, edgecolor='black')
+            plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+            plt.ylabel('Frequency', fontsize=14, fontweight='bold')
+            
+            with graph1:
+                st.write("Frequências")
+                st.pyplot(plt)
+
+            
+            plt.clf()
+            sns.scatterplot(x='MW', y='LogP', data=molecules_processed, hue='class', size='pIC50', edgecolor='black', alpha=0.7)
+
+            plt.xlabel('MW', fontsize=14, fontweight='bold')
+            plt.ylabel('LogP', fontsize=14, fontweight='bold')
+            plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0)
+            with graph2:
+                st.write("MW vs LogP")
+                st.pyplot(plt)
+
+            
+
+
+            
+
+            st.header("Classes x Descritores de Lipinski")
+            graph3, graph4, graph5, graph6, graph7 = st.columns([0.20, 0.20, 0.20, 0.20, 0.20])
+            
+            plt.clf()
+            sns.boxplot(x = 'class', y = 'pIC50', data = molecules_processed)
+            plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+            plt.ylabel('pIC50 value', fontsize=14, fontweight='bold')
+            
+            with graph3:
+                st.write("Classe x pIC50")
+                st.pyplot(plt)
+
+            plt.clf()
+            sns.boxplot(x = 'class', y = 'LogP', data = molecules_processed)
+            plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+            plt.ylabel('LogP', fontsize=14, fontweight='bold')
+
+            with graph4:
+                st.write("Classe x LogP")
+                st.pyplot(plt)
+
+            
+            plt.clf()
+            sns.boxplot(x = 'class', y = 'MW', data = molecules_processed)
+            plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+            plt.ylabel('MW', fontsize=14, fontweight='bold')
+
+            with graph5:
+                st.write("Classe x MW")
+                st.pyplot(plt)
+
+            
+            plt.clf()
+            sns.boxplot(x = 'class', y = 'NumHDonors', data = molecules_processed)
+            plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+            plt.ylabel('NumHDonors', fontsize=14, fontweight='bold')
+
+            with graph6:
+                st.write("Classe x NumHDonors")
+                st.pyplot(plt)
+
+            
+            plt.clf()
+            sns.boxplot(x = 'class', y = 'NumHAcceptors', data = molecules_processed)
+            plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+            plt.ylabel('NumHAcceptors', fontsize=14, fontweight='bold')
+
+            with graph7:
+                st.write("Classe x NumHAcceptors")
+                st.pyplot(plt)
+        
+        except Exception as e:
+            st.error(f'Erro na criação dos gráficos: {e}')
+        
+
 image = Image.open('logo.png')
 
 st.image(image, use_column_width=True)
@@ -269,17 +355,10 @@ if not targets.empty:
             st.header("Moléculas Processadas")
             molecules_processed
 
-        # sns.set(style='ticks')
         
-        # plt.figure(figsize=(5.5, 5.5))
-        # sns.countplot(x='class', data=molecules_processed, edgecolor='black')
-        # plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
-        # plt.ylabel('Frequency', fontsize=14, fontweight='bold')
-        # plt
-
-
-
-
+        st.header("Análise Gráfica")
+        graph_plot()
+        
         if not molecules_processed.empty:
             
             model_name = st.text_input("Nome para salvamento do modelo: ")
