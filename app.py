@@ -9,7 +9,7 @@ from chembl_webresource_client.new_client import new_client
 import numpy as np
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski
 import seaborn as sns
@@ -198,19 +198,58 @@ def remove_low_variance(input_data, threshold=0.1):
         st.error('Erro na remoção de baixa variância: {e}')
         return pd.DataFrame()
 
-def model_generation(X, Y):
-    try:
+def model_generation():
+    try: 
+        selection = ['canonical_smiles','molecule_chembl_id']
+        df_final_selection = molecules_processed[selection]
+        df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
+        with st.spinner("Calculando descritores..."):
+            desc_calc()
+        df_fingerprints = pd.read_csv('descriptors_output.csv')
+        st.header("Descritores")
+        df_fingerprints
+        df_fingerprints = df_fingerprints.drop(columns = ['Name'])
+        df_Y = molecules_processed['pIC50']
+        df_training = pd.concat([df_fingerprints, df_Y], axis=1)
+        df_training = df_training.dropna()
+        X = df_training.drop(['pIC50'], axis=1)
+        Y = df_training.iloc[:, -1]
+        X = remove_low_variance(X, threshold=0.1)
+        X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
         model = RandomForestRegressor(n_estimators=500, random_state=42)
         model.fit(X, Y)
-        if not os.path.isdir("models"):
-            os.mkdir("models")
+        Y_pred = model.predict(X)
+        mse = mean_squared_error(Y, Y_pred)
+        r2 = r2_score(Y, Y_pred)
+        with st.spinner("Realizando análise do modelo: "):
+            model_graph_analysis(Y, Y_pred, mse, r2)
         pickle.dump(model, open(f'models/{model_name}.pkl', 'wb'))
+        st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
+    except:
+        st.error('Falha na criação do modelo: {e}')
 
+    
+
+def model_graph_analysis(Y, Y_pred, mse, r2, ):
+    try:
+        st.header("Análise do modelo")
+        st.write(f'Mean squared error: {mse}')
+        st.write(f'Coeficiente de determinação: {r2}')
+
+        plt.clf()
+        plt.figure(figsize=(5,5))
+        plt.scatter(x=Y, y=Y_pred, c="#7CAE00", alpha=0.3)
+        z = np.polyfit(Y, Y_pred, 1)
+        p = np.poly1d(z)
+
+        plt.plot(Y, p(Y),"#F8766D")
+        plt.ylabel('pIC50 predito')
+        plt.xlabel('pIC50 experimental')
+        st.pyplot(plt)
     except Exception as e:
-        st.error(f'Erro na geração do modelo: {e}')
+        st.error(f'Erro na análise do modelo: {e}')
 
-
-def graph_plot():
+def molecules_graph_analysis():
         try:
             graph1, graph2 = st.columns([0.5, 0.5])
             
@@ -223,7 +262,8 @@ def graph_plot():
             
             with graph1:
                 st.write("Frequências")
-                st.pyplot(plt)
+                with st.spinner("Gerando gráfico de frequências"):
+                    st.pyplot(plt)
 
             
             plt.clf()
@@ -233,8 +273,9 @@ def graph_plot():
             plt.ylabel('LogP', fontsize=14, fontweight='bold')
             plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0)
             with graph2:
-                st.write("MW vs LogP")
-                st.pyplot(plt)
+                st.write("MW x LogP")
+                with st.spinner("Gerando gráfico MW x LogP"):
+                    st.pyplot(plt)
 
             
 
@@ -251,7 +292,8 @@ def graph_plot():
             
             with graph3:
                 st.write("Classe x pIC50")
-                st.pyplot(plt)
+                with st.spinner("Gerando gráfico de Classe x pIC50"):
+                    st.pyplot(plt)
 
             plt.clf()
             sns.boxplot(x = 'class', y = 'LogP', data = molecules_processed)
@@ -260,7 +302,8 @@ def graph_plot():
 
             with graph4:
                 st.write("Classe x LogP")
-                st.pyplot(plt)
+                with st.spinner("Gerando gráfico de Classe x LogP"):
+                    st.pyplot(plt)
 
             
             plt.clf()
@@ -270,7 +313,8 @@ def graph_plot():
 
             with graph5:
                 st.write("Classe x MW")
-                st.pyplot(plt)
+                with st.spinner("Gerando gráfico de Classe x MW"):
+                    st.pyplot(plt)
 
             
             plt.clf()
@@ -280,7 +324,8 @@ def graph_plot():
 
             with graph6:
                 st.write("Classe x NumHDonors")
-                st.pyplot(plt)
+                with st.spinner("Gerando gráfico de Classe x NumHDonors"):
+                    st.pyplot(plt)
 
             
             plt.clf()
@@ -290,11 +335,18 @@ def graph_plot():
 
             with graph7:
                 st.write("Classe x NumHAcceptors")
-                st.pyplot(plt)
+                with st.spinner("Gerando gráfico de Classe x NumHAcceptors"):
+                    st.pyplot(plt)
         
         except Exception as e:
             st.error(f'Erro na criação dos gráficos: {e}')
         
+
+if not os.path.isdir("models"):
+        os.mkdir("models")
+
+if not os.path.isdir("descriptor_lists"):
+                    os.mkdir("descriptor_lists")
 
 image = Image.open('logo.png')
 
@@ -356,48 +408,20 @@ if not targets.empty:
             molecules_processed
 
         
-        st.header("Análise Gráfica")
-        graph_plot()
+        
         
         if not molecules_processed.empty:
             
+            if st.button("Realizar análise gráfica"):
+                st.header("Análise Gráfica")
+                molecules_graph_analysis()
+            
             model_name = st.text_input("Nome para salvamento do modelo: ")
             if st.button("Gerar modelo"):
-                selection = ['canonical_smiles','molecule_chembl_id']
-                df_final_selection = molecules_processed[selection]
-                df_final_selection.to_csv('molecule.smi', sep='\t', index=False, header=False)
-                with st.spinner("Calculando descritores..."):
-                    desc_calc()
-                df_fingerprints = pd.read_csv('descriptors_output.csv')
-                st.header("Descritores")
-                df_fingerprints
-                df_fingerprints = df_fingerprints.drop(columns = ['Name'])
-                df_Y = molecules_processed['pIC50']
-                df_training = pd.concat([df_fingerprints, df_Y], axis=1)
-                df_training = df_training.dropna()
-                X = df_training.drop(['pIC50'], axis=1)
-                Y = df_training.iloc[:, -1]
-                X = remove_low_variance(X, threshold=0.1)
-                if not os.path.isdir("descriptor_lists"):
-                    os.mkdir("descriptor_lists")
-                X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
-                try:
-                    with st.spinner("Gerando modelo..."):
-                        model_generation(X, Y)
-                        st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
-                except:
-                    st.error('Falha na criação do modelo: {e}')
+                with st.spinner("Gerando modelo"):
+                    model_generation()
 
 
-
-
-
-
-
-
-# Sidebar
-if not os.path.isdir("models"):
-        os.mkdir("models")
 
 models = os.listdir('models')
 
