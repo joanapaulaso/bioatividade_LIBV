@@ -174,6 +174,9 @@ def select_target(selected_index):
 
         st.header("Dados das moléculas")
         df
+        medidas = df['standard_units'].value_counts()
+        st.write("Medidas:")
+        st.write(medidas)
 
         df_clean = df[df.standard_value.notna()]
         df_clean = df_clean[df.canonical_smiles.notna()]
@@ -349,6 +352,7 @@ if not os.path.isdir("descriptor_lists"):
                     os.mkdir("descriptor_lists")
 
 image = Image.open('logo.png')
+selected_index = ''
 
 st.image(image, use_column_width=True)
 
@@ -375,6 +379,7 @@ with col1:
     search = st.text_input("Alvo")
 with col2:
     if st.button('Buscar'):
+        selected_index = ''
         with st.spinner("Buscando..."):
             st.session_state['targets'] = search_target(search)
 
