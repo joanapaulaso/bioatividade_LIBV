@@ -16,7 +16,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-#TODO: Tratamento de Exceções
 
 # Molecular descriptor calculator
 def desc_calc():
@@ -177,6 +176,16 @@ def select_target(selected_index):
         medidas = df['standard_units'].value_counts()
         st.write("Medidas:")
         st.write(medidas)
+        
+        ## Temporário: filtrar apenas as entradas com medidas em nM
+
+        df = nm_filter(df)
+
+        df
+        medidas = df['standard_units'].value_counts()
+        st.write("Medidas:")
+        st.write(medidas)
+
 
         df_clean = df[df.standard_value.notna()]
         df_clean = df_clean[df.canonical_smiles.notna()]
@@ -201,7 +210,7 @@ def remove_low_variance(input_data, threshold=0.1):
         st.error('Erro na remoção de baixa variância: {e}')
         return pd.DataFrame()
 
-def model_generation():
+def model_generation(variance, estimators):
     try: 
         selection = ['canonical_smiles','molecule_chembl_id']
         df_final_selection = molecules_processed[selection]
@@ -217,9 +226,9 @@ def model_generation():
         df_training = df_training.dropna()
         X = df_training.drop(['pIC50'], axis=1)
         Y = df_training.iloc[:, -1]
-        X = remove_low_variance(X, threshold=0.1)
+        X = remove_low_variance(X, variance)
         X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
-        model = RandomForestRegressor(n_estimators=500, random_state=42)
+        model = RandomForestRegressor(estimators, random_state=42)
         model.fit(X, Y)
         Y_pred = model.predict(X)
         mse = mean_squared_error(Y, Y_pred)
@@ -344,6 +353,10 @@ def molecules_graph_analysis():
         except Exception as e:
             st.error(f'Erro na criação dos gráficos: {e}')
         
+def nm_filter(df):
+    filtered_df = df[df['standard_units'] == 'nM']
+    return filtered_df
+
 
 if not os.path.isdir("models"):
         os.mkdir("models")
@@ -421,10 +434,15 @@ if not targets.empty:
                 st.header("Análise Gráfica")
                 molecules_graph_analysis()
             
+            model_col1, model_col2 = st.columns([0.5, 0.5])
+            with model_col1:
+                variance_input = st.number_input("Limite de variância:", min_value = 0.0, value = 0.1)
+            with model_col2:
+                estimators_input = st.number_input("Número de estimadores:", min_value = 1, value = 500)
             model_name = st.text_input("Nome para salvamento do modelo: ")
             if st.button("Gerar modelo"):
                 with st.spinner("Gerando modelo"):
-                    model_generation()
+                    model_generation(variance_input, estimators_input)
 
 
 
