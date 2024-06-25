@@ -4,11 +4,11 @@ from PIL import Image
 import os
 
 
-from data_search import search_target, select_target
-from data_processing import pIC50, norm_value, label_bioactivity
-from descriptors import lipinski, desc_calc
-from model import build_model, model_generation
-from visualization import molecules_graph_analysis
+from utils.data_search import search_target, select_target
+from utils.data_processing import pIC50, norm_value, label_bioactivity
+from utils.descriptors import lipinski, desc_calc
+from utils.model import build_model, model_generation
+from utils.visualization import molecules_graph_analysis
 
 
 if not os.path.isdir("models"):

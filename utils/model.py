@@ -4,10 +4,10 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
-from file_operations import filedownload
-from descriptors import desc_calc
-from data_processing import remove_low_variance
-from visualization import model_graph_analysis
+from utils.file_operations import filedownload
+from utils.descriptors import desc_calc
+from utils.data_processing import remove_low_variance
+from utils.visualization import model_graph_analysis
 
 
 def build_model(input_data, load_data, selected_model, selected_model_name):
