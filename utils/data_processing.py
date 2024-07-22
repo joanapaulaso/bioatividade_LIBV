@@ -77,3 +77,28 @@ def remove_low_variance(input_data, threshold=0.1):
     except Exception as e:
         st.error('Erro na remoção de baixa variância: {e}')
         return pd.DataFrame()
+    
+
+def convert_ugml_nm(df):
+   
+    converted_values = []
+    df_ugml = df[df['standard_units'] == 'ug.mL-1']
+
+    df = df.drop(df_ugml.index)
+
+    for index, row in df_ugml.iterrows():
+        
+        concentration_g_l = float(row['standard_value']) * 1e-3
+        molarity_m = concentration_g_l / float(row['MW'])        
+        concentration_nm = molarity_m * 1e9
+        converted_values.append(concentration_nm)
+
+    df_ugml.drop('standard_value', axis=1)
+    df_ugml.loc[:, 'standard_value'] = converted_values
+    df_ugml['standard_value'] = df_ugml['standard_value'].astype(object)
+
+    df = pd.concat([df, df_ugml], axis=0)
+    
+
+    return df
+

@@ -24,25 +24,25 @@ def select_target(selected_index, targets):
 
         st.header("Dados das moléculas")
         st.write(df)
-        medidas = df['standard_units'].value_counts()
-        st.write("Medidas:")
-        st.write(medidas)
+        # medidas = df['standard_units'].value_counts()
+        # st.write("Medidas:")
+        # st.write(medidas)
         
         ## Temporário: filtrar apenas as entradas com medidas em nM
 
-        df = nm_filter(df)
+        ##df = nm_filter(df)
 
-        st.write(df)
-        medidas = df['standard_units'].value_counts()
-        st.write("Medidas:")
-        st.write(medidas)
+        # st.write(df)
+        # medidas = df['standard_units'].value_counts()
+        # st.write("Medidas:")
+        # st.write(medidas)
 
 
         df_clean = df[df.standard_value.notna()]
         df[df.canonical_smiles.notna()]
         df_clean = df_clean.drop_duplicates(subset=['canonical_smiles'])
 
-        selection = ['molecule_chembl_id','canonical_smiles','standard_value']
+        selection = ['molecule_chembl_id','canonical_smiles','standard_value', 'standard_units']
         df_selected = df_clean[selection]
 
         return df_selected
