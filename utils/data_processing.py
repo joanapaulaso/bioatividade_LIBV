@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 
 from sklearn.feature_selection import VarianceThreshold
+import urllib
 
 
 
@@ -102,3 +103,7 @@ def convert_ugml_nm(df):
 
     return df
 
+def class_compound(df):
+
+    classes = []
+    pass

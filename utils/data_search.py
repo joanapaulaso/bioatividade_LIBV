@@ -38,9 +38,9 @@ def select_target(selected_index, targets):
         # st.write(medidas)
 
 
-        df_clean = df[df.standard_value.notna()]
-        df[df.canonical_smiles.notna()]
-        df_clean = df_clean.drop_duplicates(subset=['canonical_smiles'])
+        df = df[df.standard_value.notna()]
+        df = df[df.canonical_smiles.notna()]
+        df_clean = df.drop_duplicates(subset=['canonical_smiles'])
 
         selection = ['molecule_chembl_id','canonical_smiles','standard_value', 'standard_units']
         df_selected = df_clean[selection]

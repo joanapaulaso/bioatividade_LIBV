@@ -5,7 +5,7 @@ import os
 
 
 from utils.data_search import search_target, select_target
-from utils.data_processing import pIC50, norm_value, label_bioactivity, convert_ugml_nm
+from utils.data_processing import pIC50, norm_value, label_bioactivity, convert_ugml_nm, clean_smiles
 from utils.descriptors import lipinski, desc_calc
 from utils.model import build_model, model_generation
 from utils.visualization import molecules_graph_analysis
@@ -69,6 +69,9 @@ if not targets.empty:
         with st.spinner("Selecionando base de dados de moléculas: "):
             selected_molecules = select_target(selected_index, targets)
         with st.spinner("Processando base de dados: "):
+            
+            ##df_clean = clean_smiles(selected_molecules)
+            
             df_lipinski = lipinski(selected_molecules)
             df_combined = pd.concat([selected_molecules, df_lipinski], axis=1)
 
@@ -80,12 +83,10 @@ if not targets.empty:
             df_converted
             
             
-            df_labeled = label_bioactivity(df_converted)
-            #df_clean_smiles = clean_smiles(df_labeled)
-            
+            df_labeled = label_bioactivity(df_converted)            
             df_labeled
 
-            df_norm = norm_value(df_combined)
+            df_norm = norm_value(df_labeled)
             molecules_processed = pIC50(df_norm)
             st.header("Moléculas Processadas")
             molecules_processed
