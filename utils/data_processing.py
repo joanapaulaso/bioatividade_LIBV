@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import requests
+import json
 
 from sklearn.feature_selection import VarianceThreshold
-import urllib
+
 
 
 
@@ -103,7 +105,29 @@ def convert_ugml_nm(df):
 
     return df
 
-def class_compound(df):
+def classify_compound(df):
 
-    classes = []
-    pass
+    try:
+    
+        classes = []
+        for smiles in df.canonical_smiles:
+            print(smiles)
+            response = requests.get(f'https://structure.gnps2.org/classyfire?smiles={smiles}', timeout=50)
+            
+            if response.status_code != 200:
+                st.error(f'Falha no API request - Status: {response.status_code}')
+            
+            
+            data_json = response.json()
+            
+            class_name = data_json['class']['name']
+            
+            classes.append(class_name)
+
+        classes_series = pd.Series(classes, name = 'compound_class', index=df)
+        df_combined = pd.concat([df, classes_series], axis=1)
+        return df_combined
+    except Exception as e:
+        st.error(f'Erro na classificação das moléculas: {e}')
+        return df
+

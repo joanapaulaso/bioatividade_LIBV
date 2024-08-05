@@ -5,7 +5,7 @@ import os
 
 
 from utils.data_search import search_target, select_target
-from utils.data_processing import pIC50, norm_value, label_bioactivity, convert_ugml_nm, clean_smiles
+from utils.data_processing import pIC50, norm_value, label_bioactivity, convert_ugml_nm, classify_compound
 from utils.descriptors import lipinski, desc_calc
 from utils.model import build_model, model_generation
 from utils.visualization import molecules_graph_analysis
@@ -84,12 +84,16 @@ if not targets.empty:
             
             
             df_labeled = label_bioactivity(df_converted)            
-            df_labeled
+
 
             df_norm = norm_value(df_labeled)
             molecules_processed = pIC50(df_norm)
             st.header("Moléculas Processadas")
             molecules_processed
+
+            df_classified = classify_compound(molecules_processed)
+            st.header("Moléculas classificadas")
+            df_classified
 
         
         
@@ -109,6 +113,8 @@ if not targets.empty:
             if st.button("Gerar modelo"):
                 with st.spinner("Gerando modelo"):
                     model_generation(molecules_processed, variance_input, estimators_input, model_name)
+            if st.button("Gerar modelos separados por classe"):
+                 pass
 
 
 

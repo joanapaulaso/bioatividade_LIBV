@@ -24,18 +24,10 @@ def select_target(selected_index, targets):
 
         st.header("Dados das moléculas")
         st.write(df)
-        # medidas = df['standard_units'].value_counts()
-        # st.write("Medidas:")
-        # st.write(medidas)
         
-        ## Temporário: filtrar apenas as entradas com medidas em nM
+        ## Temporário: filtrar apenas as entradas com unidades nM e ug/mL
 
         df = units_filter(df)
-
-        # st.write(df)
-        # medidas = df['standard_units'].value_counts()
-        # st.write("Medidas:")
-        # st.write(medidas)
 
 
         df = df[df.standard_value.notna()]
