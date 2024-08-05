@@ -30,7 +30,7 @@ def select_target(selected_index, targets):
         
         ## Temporário: filtrar apenas as entradas com medidas em nM
 
-        ##df = nm_filter(df)
+        df = units_filter(df)
 
         # st.write(df)
         # medidas = df['standard_units'].value_counts()
@@ -52,6 +52,7 @@ def select_target(selected_index, targets):
         return pd.DataFrame()
 
 
-def nm_filter(df):
-    filtered_df = df[df['standard_units'] == 'nM']
+def units_filter(df):
+    units = ['nM', 'ug.mL-1']
+    filtered_df = df.loc[df['standard_units'].isin(units)]
     return filtered_df
