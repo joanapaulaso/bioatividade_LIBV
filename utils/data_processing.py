@@ -17,6 +17,7 @@ def pIC50(input):
         pIC50.append(-np.log10(molar))
 
     input['pIC50'] = pIC50
+    input['pIC50'] = input['pIC50'].astype(float) 
     x = input.drop(columns = 'standard_value_norm')
 
     return x
@@ -24,6 +25,9 @@ def pIC50(input):
 
 
 def norm_value(input):
+    
+    input = input[input['standard_value'].astype(float) != 0]
+    
     norm = []
 
     for j in input['standard_value']:

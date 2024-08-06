@@ -53,6 +53,6 @@ def model_generation(molecules_processed, variance, estimators, model_name):
             model_graph_analysis(Y, Y_pred, mse, r2)
         pickle.dump(model, open(f'models/{model_name}.pkl', 'wb'))
         st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
-    except:
-        st.error('Falha na criação do modelo: {e}')
+    except Exception as e:
+        st.error(f'Falha na criação do modelo: {e}')
 

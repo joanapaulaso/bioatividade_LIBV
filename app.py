@@ -68,32 +68,35 @@ if not targets.empty:
     if selected_index:
         with st.spinner("Selecionando base de dados de moléculas: "):
             selected_molecules = select_target(selected_index, targets)
-        with st.spinner("Processando base de dados: "):
-            
-            ##df_clean = clean_smiles(selected_molecules)
-            
-            df_lipinski = lipinski(selected_molecules)
-            df_combined = pd.concat([selected_molecules, df_lipinski], axis=1)
+        
+        if not selected_molecules.empty:
 
-            st.write("Antes da conversão: ")
-            df_combined
-            
-            st.write("Depois da conversão: ")
-            df_converted = convert_ugml_nm(df_combined)
-            df_converted
-            
-            
-            df_labeled = label_bioactivity(df_converted)            
+            with st.spinner("Processando base de dados: "):
+                
+                ##df_clean = clean_smiles(selected_molecules)
+                
+                df_lipinski = lipinski(selected_molecules)
+                df_combined = pd.concat([selected_molecules, df_lipinski], axis=1)
+
+                st.write("Antes da conversão: ")
+                df_combined
+                
+                st.write("Depois da conversão: ")
+                df_converted = convert_ugml_nm(df_combined)
+                df_converted
+                
+                
+                df_labeled = label_bioactivity(df_converted)            
 
 
-            df_norm = norm_value(df_labeled)
-            molecules_processed = pIC50(df_norm)
-            st.header("Moléculas Processadas")
-            molecules_processed
+                df_norm = norm_value(df_labeled)
+                molecules_processed = pIC50(df_norm)
+                st.header("Moléculas Processadas")
+                molecules_processed
 
-            df_classified = classify_compound(molecules_processed)
-            st.header("Moléculas classificadas")
-            df_classified
+                # df_classified = classify_compound(molecules_processed)
+                # st.header("Moléculas classificadas")
+                # df_classified
 
         
         
@@ -126,14 +129,14 @@ if len(os.listdir('models')) != 0:
         selected_model = f'models/{selected_model_name}.pkl'
 
     with st.sidebar.header('2. Faça upload dos dados em CSV:'):
-        uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['txt'])
+        uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['csv'])
         st.sidebar.markdown("""
     [Exemplo de arquivo de entrada](https://raw.githubusercontent.com/dataprofessor/bioactivity-prediction-app/main/example_acetylcholinesterase.txt)
     """)
 
     if st.sidebar.button('Predizer'):
         st.header('Cálculo de predição:')
-        load_data = pd.read_table(uploaded_file, sep=' ', header=None)
+        load_data = pd.read_table(uploaded_file, sep=';', header=None)
         load_data.to_csv('molecule.smi', sep = ' ', header = False, index = False)
 
         st.header('**Dados originais de entrada**')
