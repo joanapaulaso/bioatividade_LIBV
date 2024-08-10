@@ -27,17 +27,16 @@ st.image(image, use_column_width=True)
 # Page title
 st.markdown("""
 # Aplicação de Predição de Bioatividade
+            
+Essa aplicação permite preparar modelos de Machine Learning utilizando o algoritmo Random Forest, de modo a realizar cálculo de predição de bioatividade em relação a alvos terapêuticos. 
 
-
-Essa aplicação permite predizer a bioatividade em relação a um alvo cujo modelo de Deep Learning foi previamente preparado.
-
-**Credits**
+**Créditos**
 - Aplicativo originalmente desenvolvido em Python + Streamlit por [Chanin Nantasenamat](https://medium.com/@chanin.nantasenamat) (aka [Data Professor](http://youtube.com/dataprofessor))
 - Descritores calculados utilizando [PaDEL-Descriptor](http://www.yapcwsoft.com/dd/padeldescriptor/) [[Leia o Paper]](https://doi.org/10.1002/jcc.21707).
 ---
 """)
 
-st.header("Criação de modelo (CHEMBL)")
+st.header("Criação de modelo (Dados da plataforma CHEMBL)")
 
 
 col1, col2 = st.columns([3,1])
@@ -199,7 +198,7 @@ if len(os.listdir('models')) != 0:
     with st.sidebar.header('2. Faça upload dos dados em CSV:'):
         uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de entrada", type=['csv'])
         st.sidebar.markdown("""
-    [Exemplo de arquivo de entrada](https://raw.githubusercontent.com/dataprofessor/bioactivity-prediction-app/main/example_acetylcholinesterase.txt)
+    [Exemplo de arquivo de entrada](https://raw.githubusercontent.com/ChiBeG/bioatividade_LIBV/main/exemplo.csv)
     """)
 
     if st.sidebar.button('Predizer'):
