@@ -9,7 +9,7 @@ from utils.data_search import search_target, select_target
 from utils.data_processing import pIC50, norm_value, label_bioactivity, convert_ugml_nm, classify_compound
 from utils.descriptors import lipinski, desc_calc
 from utils.model import build_model, model_generation
-from utils.visualization import molecules_graph_analysis
+from utils.visualization import molecules_graph_analysis, mannwhitney
 from utils.admet_evaluation import evaluate_admet, summarize_results
 
 
@@ -75,24 +75,14 @@ if not targets.empty:
 
             with st.spinner("Processando base de dados: "):
 
-                ##df_clean = clean_smiles(selected_molecules)
-
                 df_lipinski = lipinski(selected_molecules)
                 df_combined = pd.concat([selected_molecules, df_lipinski], axis=1)
-
-                st.write("Antes da conversão: ")
-                df_combined
-
-                st.write("Depois da conversão: ")
                 df_converted = convert_ugml_nm(df_combined)
-                df_converted
-
                 df_labeled = label_bioactivity(df_converted)            
-
                 df_norm = norm_value(df_labeled)
                 molecules_processed = pIC50(df_norm)
                 st.header("Moléculas Processadas")
-                molecules_processed
+                st.write(molecules_processed)
                 st.write(molecules_processed.shape)
 
                 # df_classified = classify_compound(molecules_processed)
@@ -105,6 +95,9 @@ if not targets.empty:
             if st.button("Realizar análise gráfica", key="btn_analise_grafica"):
                 st.header("Análise Gráfica")
                 molecules_graph_analysis(molecules_processed)
+                st.header("Teste de Mann-Whitney")
+                df_mannwhitney = mannwhitney(molecules_processed)
+                st.write(df_mannwhitney)
 
             if st.button("Realizar avaliação ADMET", key="btn_avaliacao_admet"):
                 st.header("Avaliação ADMET")             

@@ -9,12 +9,9 @@ from scipy.stats import mannwhitneyu
 from numpy.random import seed
 from numpy.random import randn
 
-def model_graph_analysis(Y, Y_pred, mse, r2, ):
+def model_graph_analysis(Y, Y_pred, mse, r2):
     try:
         st.header("Análise do modelo")
-        st.write(f'Mean squared error: {mse}')
-        st.write(f'Coeficiente de determinação: {r2}')
-
         plt.clf()
         plt.figure(figsize=(5,5))
         plt.scatter(x=Y, y=Y_pred, c="#7CAE00", alpha=0.3)
@@ -25,6 +22,8 @@ def model_graph_analysis(Y, Y_pred, mse, r2, ):
         plt.ylabel('pIC50 predito')
         plt.xlabel('pIC50 experimental')
         st.pyplot(plt)
+        st.write(f'Mean squared error: {mse}')
+        st.write(f'Coeficiente de determinação: {r2}')
     except Exception as e:
         st.error(f'Erro na análise do modelo: {e}')
 
@@ -129,7 +128,6 @@ def mannwhitney(df, verbose=False):
         resultado = pd.DataFrame(columns= columns_names)
         
         
-        index = 0
         for descriptor in descriptors:
         
             seed(1)
@@ -155,8 +153,7 @@ def mannwhitney(df, verbose=False):
 
             new_row = [descriptor, stat, p, alpha, interpretation]
 
-            resultado = pd.concat([resultado, pd.DataFrame([new_row], columns= columns_names)])
-            index = index + 1
+            resultado = pd.concat([resultado, pd.DataFrame([new_row], columns= columns_names)], ignore_index=True)
 
         return resultado
     

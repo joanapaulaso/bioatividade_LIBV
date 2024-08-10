@@ -36,7 +36,7 @@ def model_generation(molecules_processed, variance, estimators, model_name):
             desc_calc()
         df_fingerprints = pd.read_csv('descriptors_output.csv')
         st.header("Descritores")
-        df_fingerprints
+        st.write(df_fingerprints)
         df_fingerprints = df_fingerprints.drop(columns = ['Name'])
         df_Y = molecules_processed['pIC50']
         df_training = pd.concat([df_fingerprints, df_Y], axis=1)
@@ -44,6 +44,8 @@ def model_generation(molecules_processed, variance, estimators, model_name):
         X = df_training.drop(['pIC50'], axis=1)
         Y = df_training.iloc[:, -1]
         X = remove_low_variance(X, variance)
+        st.header("Descritores com remoção de baixa variância")
+        st.write(X)
         X.to_csv(f'descriptor_lists/{model_name}_descriptor_list.csv', index = False)
         model = RandomForestRegressor(estimators, random_state=42)
         model.fit(X, Y)
