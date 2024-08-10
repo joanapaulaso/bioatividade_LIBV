@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 import os
+import altair as alt
 
 
 from utils.data_search import search_target, select_target
@@ -9,6 +10,7 @@ from utils.data_processing import pIC50, norm_value, label_bioactivity, convert_
 from utils.descriptors import lipinski, desc_calc
 from utils.model import build_model, model_generation
 from utils.visualization import molecules_graph_analysis
+from utils.admet_evaluation import evaluate_admet, summarize_results
 
 
 if not os.path.isdir("models"):
@@ -54,40 +56,38 @@ targets = st.session_state['targets']
 molecules_processed = pd.DataFrame()
 
 
-#TODO: Alinhar input e botão 
+# TODO: Alinhar input e botão
 
 container1 = st.container()
 with container1:
     if not targets.empty:
         st.write(targets)
 
-    
+
 if not targets.empty:
     selected_index = st.text_input("Índice do alvo selecionado")
 
     if selected_index:
         with st.spinner("Selecionando base de dados de moléculas: "):
             selected_molecules = select_target(selected_index, targets)
-        
+
         if not selected_molecules.empty:
 
             with st.spinner("Processando base de dados: "):
-                
+
                 ##df_clean = clean_smiles(selected_molecules)
-                
+
                 df_lipinski = lipinski(selected_molecules)
                 df_combined = pd.concat([selected_molecules, df_lipinski], axis=1)
 
                 st.write("Antes da conversão: ")
                 df_combined
-                
+
                 st.write("Depois da conversão: ")
                 df_converted = convert_ugml_nm(df_combined)
                 df_converted
-                
-                
-                df_labeled = label_bioactivity(df_converted)            
 
+                df_labeled = label_bioactivity(df_converted)            
 
                 df_norm = norm_value(df_labeled)
                 molecules_processed = pIC50(df_norm)
@@ -98,27 +98,101 @@ if not targets.empty:
                 # st.header("Moléculas classificadas")
                 # df_classified
 
-        
-        
-        
+
         if not molecules_processed.empty:
-            
-            if st.button("Realizar análise gráfica"):
+
+            if st.button("Realizar análise gráfica", key="btn_analise_grafica"):
                 st.header("Análise Gráfica")
                 molecules_graph_analysis(molecules_processed)
-            
+
+            if st.button("Realizar avaliação ADMET", key="btn_avaliacao_admet"):
+                st.header("Avaliação ADMET")             
+                st.subheader("Regras e Limiares da Avaliação ADMET")
+                
+                rules_data = {
+                    'Regra': ['Lipinski', 'Pfizer', 'GSK', 'Golden Triangle', 'PAINS'],
+                    'Descrição': [
+                        'Regra dos 5 de Lipinski',
+                        'Regra de toxicidade da Pfizer',
+                        'Regra da GSK',
+                        'Regra do Triângulo Dourado',
+                        'Filtro de Pan-Assay Interference Compounds'
+                    ],
+                    'Critérios': [
+                        'MW ≤ 500; LogP ≤ 5; HBA ≤ 10; HBD ≤ 5',
+                        'LogP > 3 e TPSA < 75',
+                        'MW ≤ 400; LogP ≤ 4',
+                        '200 ≤ MW ≤ 500; -2 ≤ LogP ≤ 5',
+                        'Presença de subestruturas problemáticas'
+                    ],
+                    'Interpretação': [
+                        'Excelente: < 2 violações; Pobre: ≥ 2 violações',
+                        'Excelente: não atende ambos os critérios; Pobre: atende ambos os critérios',
+                        'Excelente: 0 violações; Pobre: ≥ 1 violação',
+                        'Excelente: 0 violações; Pobre: ≥ 1 violação',
+                        'Aceito: sem alertas; Não aceito: com alertas'
+                    ]
+                }
+                
+                rules_df = pd.DataFrame(rules_data)
+                st.table(rules_df)
+                with st.spinner("Realizando avaliação ADMET..."):
+                    smiles_list = molecules_processed["canonical_smiles"].tolist()
+                    admet_results = evaluate_admet(smiles_list)
+
+                    if not admet_results.empty:
+                        st.write("Resultados ADMET detalhados:")
+                        st.write(admet_results)
+
+                        summary = summarize_results(admet_results)
+                        st.write("Resumo da avaliação ADMET:")
+                        for rule, result in summary.items():
+                            st.write(f"{rule}: {result}")
+
+                        st.subheader("Distribuição das propriedades")
+                        for prop in ["MW", "LogP", "HBD", "HBA", "TPSA"]:
+                            st.write(f"Distribuição de {prop}")
+                            chart = (
+                                alt.Chart(admet_results)
+                                .mark_bar()
+                                .encode(
+                                    alt.X(prop, bin=True),
+                                    y="count()",
+                                )
+                                .properties(width=600, height=300)
+                            )
+                            st.altair_chart(chart, use_container_width=True)
+
+                        st.subheader("Violações das regras")
+                        for rule in ["Lipinski", "GSK", "GoldenTriangle"]:
+                            st.write(f"Violações da regra {rule}")
+                            st.bar_chart(admet_results[f"{rule}_violations"].value_counts())
+
+                        st.subheader("PAINS alerts")
+                        st.write("Número de compostos com alertas PAINS")
+                        st.bar_chart(admet_results["PAINS"].value_counts())
+                    else:
+                        st.error(
+                            "Não foi possível realizar a avaliação ADMET. Verifique os dados de entrada e tente novamente."
+                        )
+
             model_col1, model_col2 = st.columns([0.5, 0.5])
             with model_col1:
-                variance_input = st.number_input("Limite de variância:", min_value = 0.0, value = 0.1)
+                variance_input = st.number_input(
+                    "Limite de variância:", min_value=0.0, value=0.1
+                )
             with model_col2:
-                estimators_input = st.number_input("Número de estimadores:", min_value = 1, value = 500)
+                estimators_input = st.number_input(
+                    "Número de estimadores:", min_value=1, value=500
+                )
             model_name = st.text_input("Nome para salvamento do modelo: ")
             if st.button("Gerar modelo"):
                 with st.spinner("Gerando modelo"):
-                    model_generation(molecules_processed, variance_input, estimators_input, model_name)
+                    model_generation(
+                        molecules_processed, variance_input, estimators_input, model_name
+                    )
             if st.button("Gerar modelos separados por classe"):
-                 pass
-
+                pass
 
 
 models = os.listdir('models')
@@ -145,20 +219,17 @@ if len(os.listdir('models')) != 0:
         with st.spinner("Calculando descritores..."):
             desc_calc()
 
-        # Read in calculated descriptors and display the dataframe
         st.header('**Cálculo de descritores moleculares realizado**')
         desc = pd.read_csv('descriptors_output.csv', )
         st.write(desc)
         st.write(desc.shape)
 
-        # Read descriptor list used in previously built model
         st.header('**Subconjunto de descritores de modelos preparados previamente**')
         Xlist = list(pd.read_csv(f'descriptor_lists/{selected_model_name}_descriptor_list.csv').columns)
         desc_subset = desc[Xlist]
         st.write(desc_subset)
         st.write(desc_subset.shape)
 
-        # Apply trained model to make prediction on query compounds
         build_model(desc_subset, load_data, selected_model, selected_model_name)
     else:
         st.info('Utilize a barra lateral para selecionar o modelo e realizar o upload dos dados de entrada!')
