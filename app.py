@@ -8,7 +8,7 @@ from utils.data_search import search_target, select_target
 from utils.data_processing import pIC50, norm_value, label_bioactivity, convert_ugml_nm, classify_compound
 from utils.descriptors import lipinski, desc_calc
 from utils.model import build_model, model_generation
-from utils.visualization import molecules_graph_analysis
+from utils.visualization import molecules_graph_analysis, mannwhitney
 
 
 if not os.path.isdir("models"):
@@ -93,6 +93,7 @@ if not targets.empty:
                 molecules_processed = pIC50(df_norm)
                 st.header("Moléculas Processadas")
                 molecules_processed
+                st.write(molecules_processed.shape)
 
                 # df_classified = classify_compound(molecules_processed)
                 # st.header("Moléculas classificadas")
@@ -106,6 +107,7 @@ if not targets.empty:
             if st.button("Realizar análise gráfica"):
                 st.header("Análise Gráfica")
                 molecules_graph_analysis(molecules_processed)
+                st.write(mannwhitney(molecules_processed, 'MW'))
             
             model_col1, model_col2 = st.columns([0.5, 0.5])
             with model_col1:
@@ -152,14 +154,19 @@ if len(os.listdir('models')) != 0:
         st.write(desc.shape)
 
         # Read descriptor list used in previously built model
-        st.header('**Subconjunto de descritores de modelos preparados previamente**')
+        st.header('**Subconjunto de descritores do modelo selecionado**')
         Xlist = list(pd.read_csv(f'descriptor_lists/{selected_model_name}_descriptor_list.csv').columns)
         desc_subset = desc[Xlist]
         st.write(desc_subset)
         st.write(desc_subset.shape)
 
         # Apply trained model to make prediction on query compounds
-        build_model(desc_subset, load_data, selected_model, selected_model_name)
+        df_result = build_model(desc_subset, load_data, selected_model, selected_model_name)
+        result_lipinski = lipinski(df_result)
+        result_lipinski = result_lipinski['LogP']
+        df_final = pd.concat([df_result, result_lipinski], axis=1)
+        st.write(df_final)
+
     else:
         st.info('Utilize a barra lateral para selecionar o modelo e realizar o upload dos dados de entrada!')
 else:

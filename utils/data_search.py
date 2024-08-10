@@ -24,6 +24,7 @@ def select_target(selected_index, targets):
 
         st.header("Dados das moléculas")
         st.write(df)
+        st.write(df.shape)
         
         ## Temporário: filtrar apenas as entradas com unidades nM e ug/mL
 
