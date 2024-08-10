@@ -3,6 +3,7 @@ import pandas as pd
 from PIL import Image
 import os
 import altair as alt
+from io import StringIO
 
 
 from utils.data_search import search_target, select_target
@@ -11,13 +12,15 @@ from utils.descriptors import lipinski, desc_calc
 from utils.model import build_model, model_generation
 from utils.visualization import molecules_graph_analysis, mannwhitney
 from utils.admet_evaluation import evaluate_admet, summarize_results
-
+from utils.mol_draw import get_molecular_image, image_to_base64
 
 if not os.path.isdir("models"):
         os.mkdir("models")
 
 if not os.path.isdir("descriptor_lists"):
-                    os.mkdir("descriptor_lists")
+    os.mkdir("descriptor_lists")
+
+st.set_page_config(layout="wide")
 
 image = Image.open('logo.png')
 selected_index = ''
@@ -203,8 +206,11 @@ if len(os.listdir('models')) != 0:
 
     if st.sidebar.button('Predizer'):
         st.header('Cálculo de predição:')
-        load_data = pd.read_table(uploaded_file, sep=';', header=None)
-        load_data.to_csv('molecule.smi', sep = ' ', header = False, index = False)
+        # Modificar a leitura do arquivo CSV
+        load_data = pd.read_csv(uploaded_file, sep=';', header=None, names=['SMILES', 'ID', 'Name'])
+
+        # Criar o arquivo .smi apenas com SMILES e ID
+        load_data[['SMILES', 'ID']].to_csv('molecule.smi', sep=' ', header=False, index=False)
 
         st.header('**Dados originais de entrada**')
         st.write(load_data)
@@ -213,7 +219,7 @@ if len(os.listdir('models')) != 0:
             desc_calc()
 
         st.header('**Cálculo de descritores moleculares realizado**')
-        desc = pd.read_csv('descriptors_output.csv', )
+        desc = pd.read_csv('descriptors_output.csv')
         st.write(desc)
         st.write(desc.shape)
 
@@ -225,14 +231,85 @@ if len(os.listdir('models')) != 0:
         st.write(desc_subset.shape)
 
         # Apply trained model to make prediction on query compounds
-        df_result = build_model(desc_subset, load_data, selected_model, selected_model_name)
-        result_lipinski = lipinski(df_result)
-        result_lipinski = result_lipinski['LogP']
-        df_final = pd.concat([df_result, result_lipinski], axis=1)
-        st.write(df_final)
+        df_result = build_model(
+            desc_subset, load_data, selected_model, selected_model_name
+        )
+
+        if not df_result.empty:
+            result_lipinski = lipinski(load_data)
+            df_final = pd.concat([df_result, result_lipinski], axis=1)
+            st.write(df_final)
+
+            # Adicionar avaliação ADMET para as moléculas preditas
+            st.header("Avaliação ADMET das Moléculas Preditas")
+            with st.spinner("Realizando avaliação ADMET..."):
+                smiles_list = load_data['SMILES'].tolist()
+                admet_results = evaluate_admet(smiles_list)
+
+                if not admet_results.empty:
+                    st.write("Resultados ADMET detalhados:")
+                    st.write(admet_results)
+
+                    summary = summarize_results(admet_results)
+                    st.write("Resumo da avaliação ADMET:")
+                    for rule, result in summary.items():
+                        st.write(f"{rule}: {result}")
+
+                    st.subheader("Distribuição das propriedades")
+                    for prop in ["MW", "LogP", "HBD", "HBA", "TPSA"]:
+                        st.write(f"Distribuição de {prop}")
+                        chart = (
+                            alt.Chart(admet_results)
+                            .mark_bar()
+                            .encode(
+                                alt.X(prop, bin=True),
+                                y="count()",
+                            )
+                            .properties(width=600, height=300)
+                        )
+                        st.altair_chart(chart, use_container_width=True)
+
+                    st.subheader("Violações das regras")
+                    for rule in ["Lipinski", "GSK", "GoldenTriangle"]:
+                        st.write(f"Violações da regra {rule}")
+                        st.bar_chart(admet_results[f"{rule}_violations"].value_counts())
+
+                    st.subheader("PAINS alerts")
+                    st.write("Número de compostos com alertas PAINS")
+                    st.bar_chart(admet_results["PAINS"].value_counts())
+
+                    # Combinar resultados de predição com avaliação ADMET
+                    admet_columns_to_keep = [col for col in admet_results.columns if col not in df_final.columns and col != 'smiles']
+                    df_final_with_admet = pd.concat([df_final, admet_results[admet_columns_to_keep]], axis=1)
+                    
+                    st.header("Resultados Finais (Predição + ADMET)")
+                    
+                    # Gerar imagens das estruturas moleculares
+                    with st.spinner("Gerando imagens das estruturas moleculares..."):
+                        molecular_images = [get_molecular_image(smiles) for smiles in smiles_list]
+                    
+                    # Exibir informações de depuração
+                    st.subheader("Informações de Depuração")
+                    st.write(f"Número de moléculas: {len(smiles_list)}")
+                    st.write(f"Número de imagens geradas: {len([img for img in molecular_images if img is not None])}")
+                    
+                    # Adicionar uma coluna com as imagens ao DataFrame
+                    df_final_with_admet.insert(1, 'Estrutura Molecular', [image_to_base64(img) for img in molecular_images])
+                    
+                    # Exibir a tabela final com as imagens
+                    st.subheader("Tabela de Resultados com Estruturas Moleculares")
+                    st.write(df_final_with_admet.to_html(escape=False, index=False), unsafe_allow_html=True)
+                    
+                else:
+                    st.error(
+                        "Não foi possível realizar a avaliação ADMET. Verifique os dados de entrada e tente novamente."
+                    )
+        else:
+            st.error("Não foi possível gerar predições. Verifique os dados de entrada e o modelo selecionado.")
 
     else:
         st.info('Utilize a barra lateral para selecionar o modelo e realizar o upload dos dados de entrada!')
+
 else:
     with st.sidebar.header('Não há modelos disponíveis para predição'):
         pass
