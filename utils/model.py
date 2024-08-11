@@ -11,20 +11,22 @@ from utils.visualization import model_graph_analysis
 
 
 def build_model(input_data, load_data, selected_model, selected_model_name):
-    
-   # try:
-        load_model = pickle.load(open(selected_model, 'rb'))
+    try:
+        load_model = pickle.load(open(selected_model, "rb"))
         prediction = load_model.predict(input_data)
-        st.header(f'**Saída das predições - Bioatividade em relação ao modelo {selected_model_name}**')
-        prediction_output = pd.Series(prediction, name='pIC50')
-        molecule_id = pd.Series(load_data[1], name='id_molecula')
-        molecule_name = pd.Series(load_data[2], name='nome_molecula')
-        smiles = pd.Series(load_data[0], name='canonical_smiles')
-        df = pd.concat([molecule_id, molecule_name, smiles, prediction_output], axis=1)
+        st.header(
+            f"**Saída das predições - Bioatividade em relação ao modelo {selected_model_name}**"
+        )
+        prediction_output = pd.Series(prediction, name="pIC50")
+        molecule_id = pd.Series(load_data["ID"], name="id_molecula")
+        molecule_name = pd.Series(load_data["Name"], name="nome_molecula")
+        df = pd.concat([molecule_id, molecule_name, prediction_output], axis=1)
+        st.write(df)
+        st.markdown(filedownload(df), unsafe_allow_html=True)
         return df
-        
-    #except Exception as e:
-        #st.error(f'Erro ao construir o modelo: {e}')
+    except Exception as e:
+        st.error(f"Erro ao construir o modelo: {str(e)}")
+        return pd.DataFrame()
 
 
 def model_generation(molecules_processed, variance, estimators, model_name):
@@ -58,4 +60,3 @@ def model_generation(molecules_processed, variance, estimators, model_name):
         st.success(f'Modelo {model_name} criado! Agora está disponível para predições.')
     except Exception as e:
         st.error(f'Falha na criação do modelo: {e}')
-
