@@ -6,4 +6,4 @@ scikit-learn
 seaborn
 altair
 rdkit
-libxrender1
+libxrender
