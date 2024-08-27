@@ -5,6 +5,5 @@ numpy
 scikit-learn
 seaborn
 altair
-base64
 io
 
