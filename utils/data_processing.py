@@ -4,9 +4,8 @@ import streamlit as st
 import requests
 import json
 
+from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import VarianceThreshold
-
-
 
 
 def pIC50(input):
@@ -21,7 +20,6 @@ def pIC50(input):
     x = input.drop(columns = 'standard_value_norm')
 
     return x
-
 
 
 def norm_value(input):
@@ -57,9 +55,9 @@ def clean_smiles(df):
 
 
 def label_bioactivity(df_selected):
-    
+
     bioactivity_threshold = []
-        
+
     for i in df_selected.standard_value:
         if float(i) >= 10000:
             bioactivity_threshold.append("inativo")
@@ -68,23 +66,33 @@ def label_bioactivity(df_selected):
         else:
             bioactivity_threshold.append("intermediário")
     bioactivity_class = pd.Series(bioactivity_threshold, name='class', index = df_selected.index)
-    
-    
-    
+
     df_labeled = pd.concat([df_selected, bioactivity_class], axis=1)
     return df_labeled
 
 
 def remove_low_variance(input_data, threshold=0.1):
-    
     try:
         selection = VarianceThreshold(threshold)
         selection.fit(input_data)
-        return input_data[input_data.columns[selection.get_support(indices=True)]]
+
+        # Get the mask of columns to keep
+        mask = selection.get_support()
+
+        # If no columns meet the threshold, return the original data with a warning
+        if not any(mask):
+            st.warning(
+                f"No features meet the variance threshold {threshold}. Returning all features."
+            )
+            return input_data
+
+        # Select columns based on the mask
+        selected_columns = input_data.columns[mask]
+        return input_data[selected_columns]
     except Exception as e:
-        st.error('Erro na remoção de baixa variância: {e}')
-        return pd.DataFrame()
-    
+        st.error(f"Erro na remoção de baixa variância: {e}")
+        return input_data  # Return original data if an error occurs
+
 
 def convert_ugml_nm(df):
    
@@ -109,29 +117,28 @@ def convert_ugml_nm(df):
 
     return df
 
-def classify_compound(df):
+# def classify_compound(df):
 
-    try:
-    
-        classes = []
-        for smiles in df.canonical_smiles:
-            print(smiles)
-            response = requests.get(f'https://structure.gnps2.org/classyfire?smiles={smiles}', timeout=50)
-            
-            if response.status_code != 200:
-                st.error(f'Falha no API request - Status: {response.status_code}')
-            
-            
-            data_json = response.json()
-            
-            class_name = data_json['class']['name']
-            
-            classes.append(class_name)
+#     try:
 
-        classes_series = pd.Series(classes, name = 'compound_class', index=df)
-        df_combined = pd.concat([df, classes_series], axis=1)
-        return df_combined
-    except Exception as e:
-        st.error(f'Erro na classificação das moléculas: {e}')
-        return df
+#         classes = []
+#         for smiles in df.canonical_smiles:
+#             print(smiles)
+#             response = requests.get(f'https://structure.gnps2.org/classyfire?smiles={smiles}', timeout=50)
 
+#             if response.status_code != 200:
+#                 st.error(f'Falha no API request - Status: {response.status_code}')
+
+
+#             data_json = response.json()
+
+#             class_name = data_json['class']['name']
+
+#             classes.append(class_name)
+
+#         classes_series = pd.Series(classes, name = 'compound_class', index=df)
+#         df_combined = pd.concat([df, classes_series], axis=1)
+#         return df_combined
+#     except Exception as e:
+#         st.error(f'Erro na classificação das moléculas: {e}')
+#         return df
