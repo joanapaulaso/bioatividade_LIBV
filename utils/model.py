@@ -32,6 +32,29 @@ from utils.data_processing import remove_low_variance
 from utils.visualization import model_graph_analysis
 
 
+# Função para listar os modelos disponíveis
+def list_models():
+    models = [
+        f.removesuffix(".pkl") for f in os.listdir("models") if f.endswith(".pkl")
+    ]
+    return models
+
+
+# Interface para seleção de algoritmos
+def select_algorithms_ui():
+    st.sidebar.header("Seleção de Algoritmos")
+    selected_algorithms = []
+    if st.sidebar.checkbox("Random Forest", value=True):
+        selected_algorithms.append("Random Forest")
+    if st.sidebar.checkbox("Gradient Boosting", value=True):
+        selected_algorithms.append("Gradient Boosting")
+    if st.sidebar.checkbox("Support Vector Machine", value=True):
+        selected_algorithms.append("Support Vector Machine")
+    if st.sidebar.checkbox("Rede Neural", value=True):
+        selected_algorithms.append("Neural Network")
+    return selected_algorithms
+
+
 def weighted_score(r2, mse, rmse, mae, mape, explained_var):
     normalized_r2 = r2  # Já está na escala desejada (0-1)
     normalized_mse = 1 / (1 + mse)  # Inverter porque valores menores são melhores

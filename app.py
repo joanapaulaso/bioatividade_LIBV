@@ -11,35 +11,12 @@ from utils.model import (
     model_generation,
     generate_class_models,
     detect_and_remove_outliers,
+    select_algorithms_ui
 )
 from utils.visualization import molecules_graph_analysis, mannwhitney
 from utils.admet_evaluation import evaluate_admet, summarize_results
 from utils.mol_draw import get_molecular_image, image_to_base64
 from utils.mol_classification import classify_compound
-
-
-# Função para listar os modelos disponíveis
-def list_models():
-    models = [
-        f.removesuffix(".pkl") for f in os.listdir("models") if f.endswith(".pkl")
-    ]
-    return models
-
-
-# Interface para seleção de algoritmos
-def select_algorithms_ui():
-    st.sidebar.header("Seleção de Algoritmos")
-    selected_algorithms = []
-    if st.sidebar.checkbox("Random Forest", value=True):
-        selected_algorithms.append("Random Forest")
-    if st.sidebar.checkbox("Gradient Boosting", value=True):
-        selected_algorithms.append("Gradient Boosting")
-    if st.sidebar.checkbox("Support Vector Machine", value=True):
-        selected_algorithms.append("Support Vector Machine")
-    if st.sidebar.checkbox("Rede Neural", value=True):
-        selected_algorithms.append("Neural Network")
-    return selected_algorithms
-
 
 # Interface principal do aplicativo
 def main():
@@ -267,9 +244,6 @@ def main():
                         st.error(
                             "Por favor, execute a classificação dos compostos primeiro."
                         )
-
-    # Manter a seção de previsão na barra lateral
-    models = os.listdir("models")
 
     if len(models) != 0:
         with st.sidebar.header("1. Selecione o modelo a ser utilizado (alvo): "):
