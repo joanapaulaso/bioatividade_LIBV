@@ -11,6 +11,7 @@ from utils.model import (
     model_generation,
     generate_class_models,
     detect_and_remove_outliers,
+    list_models,
     select_algorithms_ui
 )
 from utils.visualization import molecules_graph_analysis, mannwhitney
