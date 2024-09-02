@@ -19,10 +19,11 @@ from utils.admet_evaluation import evaluate_admet, summarize_results
 from utils.mol_draw import get_molecular_image, image_to_base64
 from utils.mol_classification import classify_compound
 
+# Set the page configuration
+st.set_page_config(layout="wide")
 
 # Interface principal do aplicativo
 def main():
-    st.set_page_config(layout="wide")
     image = Image.open("logo.png")
     st.image(image, use_column_width=True)
 
