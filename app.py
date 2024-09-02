@@ -18,6 +18,7 @@ from utils.admet_evaluation import evaluate_admet, summarize_results
 from utils.mol_draw import get_molecular_image, image_to_base64
 from utils.mol_classification import classify_compound
 
+
 # Interface principal do aplicativo
 def main():
     st.set_page_config(layout="wide")
@@ -86,7 +87,7 @@ def main():
                             "Erro na classificação: coluna 'compound_class' não encontrada."
                         )
 
-            if not molecules_processed.empty:
+            if not molecules_processed.empty():
                 if st.button("Realizar análise gráfica", key="btn_analise_grafica"):
                     st.header("Análise Gráfica")
                     molecules_graph_analysis(molecules_processed)
@@ -245,13 +246,11 @@ def main():
                             "Por favor, execute a classificação dos compostos primeiro."
                         )
 
+    # Initialize the models list
+    models = list_models()
+
     if len(models) != 0:
         with st.sidebar.header("1. Selecione o modelo a ser utilizado (alvo): "):
-            models = [
-                f.removesuffix(".pkl")
-                for f in os.listdir("models")
-                if f.endswith(".pkl")
-            ]
             selected_model_name = st.sidebar.selectbox("Modelo", models)
             selected_model = f"models/{selected_model_name}.pkl"
 
@@ -399,6 +398,10 @@ def main():
     else:
         with st.sidebar.header("Não há modelos disponíveis para predição"):
             pass
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":
