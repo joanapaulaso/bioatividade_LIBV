@@ -19,11 +19,10 @@ from utils.admet_evaluation import evaluate_admet, summarize_results
 from utils.mol_draw import get_molecular_image, image_to_base64
 from utils.mol_classification import classify_compound
 
-# Set the page configuration
-st.set_page_config(layout="wide")
 
 # Interface principal do aplicativo
 def main():
+    st.set_page_config(layout="wide")
     image = Image.open("logo.png")
     st.image(image, use_column_width=True)
 
@@ -89,7 +88,7 @@ def main():
                             "Erro na classificação: coluna 'compound_class' não encontrada."
                         )
 
-            if not molecules_processed.empty():
+            if not molecules_processed.empty:
                 if st.button("Realizar análise gráfica", key="btn_analise_grafica"):
                     st.header("Análise Gráfica")
                     molecules_graph_analysis(molecules_processed)
@@ -382,9 +381,15 @@ def main():
                             [image_to_base64(img) for img in molecular_images],
                         )
 
+                        df_final_with_admet_sorted = df_final_with_admet.sort_values(
+                            by="pIC50", ascending=False
+                        )
+
                         st.subheader("Tabela de Resultados com Estruturas Moleculares")
                         st.write(
-                            df_final_with_admet.to_html(escape=False, index=False),
+                            df_final_with_admet_sorted.to_html(
+                                escape=False, index=False
+                            ),
                             unsafe_allow_html=True,
                         )
 
@@ -400,10 +405,6 @@ def main():
     else:
         with st.sidebar.header("Não há modelos disponíveis para predição"):
             pass
-
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":
