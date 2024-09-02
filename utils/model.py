@@ -34,6 +34,9 @@ from utils.visualization import model_graph_analysis
 
 # Função para listar os modelos disponíveis
 def list_models():
+    if not os.path.exists("models"):
+        os.makedirs("models")
+
     models = [
         f.removesuffix(".pkl") for f in os.listdir("models") if f.endswith(".pkl")
     ]
